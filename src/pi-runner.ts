@@ -100,11 +100,13 @@ export class PiSdkRunner implements AgentRunner {
     }
 
     const blocked = assistantErrors.length > 0;
+    const handoff = lastAssistantText || currentAssistantText;
+    const inputRequest = handoff.match(/(?:^|\n)<needs-input>([\s\S]*?)<\/needs-input>\s*$/u)?.[1]?.trim();
     return {
-      status: blocked ? "blocked" : "continue",
+      status: blocked ? "blocked" : inputRequest ? "needs_input" : "continue",
       summary: blocked
         ? `Pi iteration ${input.iteration} blocked: ${assistantErrors.at(-1)}`
-        : redactSensitiveValues(summarizeAssistant(lastAssistantText || currentAssistantText, input.iteration)),
+        : redactSensitiveValues(inputRequest ? inputRequest.slice(0, 600) : summarizeAssistant(handoff, input.iteration)),
       output: redactSensitiveValues(output),
       events,
       costUsd: session.getSessionStats?.().cost,
@@ -137,6 +139,7 @@ function buildRalphPrompt(job: RalphJob, iteration: number, progress: string): s
     "- Do not make Git commits; RalphWorks handles verified commits after checks.",
     "- Run relevant checks when possible.",
     "- End with a concise handoff: item addressed, evidence from checks, files changed, and the next unfinished item or blocker.",
+    "- Investigate questions you can resolve yourself. If a decision or missing information genuinely requires a person, end with <needs-input>one concrete question and the relevant findings</needs-input>. Do not claim completion.",
     "- Do not claim completion unless the completion promise is true.",
     completion,
   ].join("\n");

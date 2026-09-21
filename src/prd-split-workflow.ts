@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PRD_SPLIT_WORKFLOW = [
   "name: RalphWorks Split PRD",
@@ -140,6 +140,11 @@ export const PRD_SPLIT_WORKFLOW = [
   "        run: |",
   "          gh issue edit \"$ISSUE_NUMBER\" --remove-label 'ralphworks:to-issues' || true",
   "          gh issue edit \"$ISSUE_NUMBER\" --add-label 'ralphworks:blocked' || true",
-  '          gh issue comment "$ISSUE_NUMBER" --body "RalphWorks PRD split failed. Inspect $RUN_URL and any partially created sub-issues. If delivery failed after a successful split, re-run only the failed job from this run to resume the same proposal."',
+  ...failureComment(
+    "ralphworks-prd-split",
+    "ISSUE_NUMBER",
+    "ralphworks:to-issues",
+    "RalphWorks PRD split failed. Inspect partial sub-issues; if only delivery failed, rerun the failed job from this run.",
+  ),
   "",
 ].join("\n");

@@ -148,6 +148,33 @@ test("runLocalJob executes configured checks after each iteration", async () => 
   ]);
 });
 
+test("runLocalJob stops for human input before checks", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
+  const jobPath = join(workspace, "job.yaml");
+  await writeFile(
+    jobPath,
+    "name: decision\ntask: Implement an ambiguous change.\nmax_iterations: 3\nchecks:\n  - node -e \"require('node:fs').writeFileSync('checked', 'yes')\"\n",
+  );
+  const result = await runLocalJob(jobPath, {
+    cwd: workspace,
+    runner: {
+      async runIteration() {
+        return { status: "needs_input", summary: "Choose whether to retain legacy behavior." };
+      },
+    },
+  });
+  assert.equal(result.status, "needs_input");
+  assert.equal(result.iterations, 1);
+  assert.equal(result.reason, "Choose whether to retain legacy behavior.");
+  assert.equal(result.checks.length, 0);
+  await assert.rejects(readFile(join(workspace, "checked"), "utf8"));
+  const progressPath = parseJob(await readFile(jobPath, "utf8")).progressFile;
+  const progress = await readFile(join(workspace, progressPath), "utf8");
+  assert.match(progress, /Choose whether to retain legacy behavior/);
+  const persisted = JSON.parse(await readFile(result.resultPath, "utf8"));
+  assert.equal(persisted.status, "needs_input");
+});
+
 test("runLocalJob completes when runner output satisfies the completion promise", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
   const jobPath = join(workspace, "job.yaml");

@@ -9,7 +9,7 @@ import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
 import { type AgentRunner, DryRunRunner, type IterationResult } from "./runner.ts";
 
-type RunStatus = "completed" | "blocked" | "cancelled" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
+type RunStatus = "completed" | "blocked" | "needs_input" | "cancelled" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
 
 export type RalphRunResult = {
   jobName: string;
@@ -171,6 +171,10 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         if (!reason && headBefore && (await currentGitHead(cwd)) !== headBefore) {
           status = "blocked";
           reason = "agent changed Git HEAD; RalphWorks must own commits after checks";
+        }
+        if (!reason && iterationResult.status === "needs_input") {
+          status = "needs_input";
+          reason = lastSummary;
         }
         const checkResults: CheckResult[] = [];
         if (!reason) {

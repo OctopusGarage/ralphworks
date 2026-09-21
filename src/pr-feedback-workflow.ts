@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PR_FEEDBACK_WORKFLOW = [
   "name: RalphWorks PR Feedback",
@@ -142,12 +142,19 @@ export const PR_FEEDBACK_WORKFLOW = [
   "          auth=$(printf 'x-access-token:%s' \"$GH_TOKEN\" | base64 | tr -d '\\n')",
   '          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push origin "HEAD:refs/heads/$BRANCH"',
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:implement' || true",
+  "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:blocked' || true",
   '          gh pr comment "$PR_NUMBER" --body "RalphWorks addressed PR feedback in $(git rev-parse --short HEAD). Run: $RUN_URL"',
   "      - name: Report failure",
   "        if: failure() && env.GH_TOKEN != ''",
   "        run: |",
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:implement' || true",
   "          gh pr edit \"$PR_NUMBER\" --add-label 'ralphworks:blocked' || true",
-  '          gh pr comment "$PR_NUMBER" --body "RalphWorks feedback run failed. Inspect $RUN_URL, then re-add the implement label to retry."',
+  ...failureComment(
+    "ralphworks-feedback",
+    "PR_NUMBER",
+    "ralphworks:implement",
+    "RalphWorks feedback run failed. Inspect the run, then re-add ralphworks:implement to retry.",
+    "pr",
+  ),
   "",
 ].join("\n");

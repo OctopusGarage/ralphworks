@@ -56,6 +56,7 @@ test("PiSdkRunner builds a Ralph prompt and normalizes Pi session events", async
   assert.match(capturedPrompt, /use saved progress to identify the highest-priority unfinished item/);
   assert.match(capturedPrompt, /address its feedback from progress/);
   assert.match(capturedPrompt, /item addressed, evidence from checks, files changed/);
+  assert.match(capturedPrompt, /<needs-input>one concrete question and the relevant findings<\/needs-input>/);
   assert.equal(unsubscribed, true);
   assert.deepEqual(
     result.events?.map((event) => event.type),
@@ -115,6 +116,42 @@ test("PiSdkRunner blocks when the Pi provider returns an assistant error", async
       },
     },
   ]);
+});
+
+test("PiSdkRunner recognizes a final request for human input", async () => {
+  let listener: ((event: PiSessionEvent) => void) | undefined;
+  const runner = new PiSdkRunner({
+    createSession: async () => ({
+      subscribe: (next) => {
+        listener = next;
+        return () => {};
+      },
+      prompt: async () => {},
+      waitForIdle: async () => {
+        listener?.({
+          type: "message_update",
+          assistantMessageEvent: {
+            type: "text_delta",
+            delta: "Checked the existing API.\n<needs-input>Which compatibility behavior should remain?</needs-input>",
+          },
+        });
+      },
+    }),
+  });
+  const job: RalphJob = {
+    name: "human-input",
+    task: "Implement the API change",
+    progressFile: ".ralph/progress.md",
+    completionPromise: "DONE",
+    maxIterations: 3,
+    mode: "local",
+    checkTimeoutSeconds: 60,
+    commit: "none",
+    checks: [],
+  };
+  const result = await runner.runIteration({ job, iteration: 1, cwd: process.cwd() });
+  assert.equal(result.status, "needs_input");
+  assert.equal(result.summary, "Which compatibility behavior should remain?");
 });
 
 test("PiSdkRunner uses the last assistant handoff without the completion marker", async () => {

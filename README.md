@@ -31,7 +31,7 @@ Without checks, `completed` means the agent reported completion; it does not ind
 
 1. Pi reads the task and saved progress, then works on one useful increment.
 2. RalphWorks runs the configured checks and records the outcome.
-3. A new Pi session receives that progress and continues. The loop stops on completion, a blocker, or an iteration, time, or cost limit.
+3. A new Pi session receives that progress and continues. The loop stops on completion, a request for human input, a blocker, or an iteration, time, or cost limit.
 
 The default limit is **five iterations**. Progress and results live in `.ralph/`; inspect the latest run with `ralphworks status .ralph/current`. Completion requires the agent's completion signal and, when configured, passing checks. RalphWorks can commit passing iterations with `--commit verified`; otherwise it leaves changes for you to review.
 

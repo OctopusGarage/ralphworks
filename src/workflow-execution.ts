@@ -15,3 +15,23 @@ export const RALPHWORKS_CHECKOUT_AND_BUILD = [
   '          pnpm --dir "$RUNNER_TEMP/ralphworks" install --frozen-lockfile',
   '          pnpm --dir "$RUNNER_TEMP/ralphworks" build',
 ] as const;
+
+export function failureComment(
+  artifact: string,
+  targetNumber: string,
+  triggerLabel: string,
+  fallback: string,
+  target: "issue" | "pr" = "issue",
+): string[] {
+  const actionsToken = "${{ github.token }}";
+  return [
+    `          GH_TOKEN="${actionsToken}" gh run download "$GITHUB_RUN_ID" --name '${artifact}' --dir "$RUNNER_TEMP/ralph-feedback" >/dev/null 2>&1 || true`,
+    '          result=$(find "$RUNNER_TEMP/ralph-feedback/runs" -name result.json -type f -print -quit 2>/dev/null || true)',
+    '          if [ -n "$result" ] && jq -e \'.status == "needs_input"\' "$result" >/dev/null; then',
+    `            printf 'RalphWorks needs human input:\\n\\n%s\\n\\nUpdate this ${target.toUpperCase()} and re-add ${triggerLabel} to retry. [Run and artifacts](%s).\\n' "$(jq -r '.reason // .lastSummary // "See run artifacts"' "$result")" "$RUN_URL" > "$RUNNER_TEMP/ralph-feedback.md"`,
+    "          else",
+    `            printf '%s [Run and artifacts](%s).\\n' '${fallback}' "$RUN_URL" > "$RUNNER_TEMP/ralph-feedback.md"`,
+    "          fi",
+    `          gh ${target} comment "$${targetNumber}" --body-file "$RUNNER_TEMP/ralph-feedback.md"`,
+  ];
+}

@@ -6,18 +6,66 @@ import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
+import { ISSUE_WORKFLOW } from "../src/issue-workflow.ts";
 import { PRD_SPLIT_WORKFLOW } from "../src/prd-split-workflow.ts";
 import { QUEUE_WORKFLOW } from "../src/queue-workflow.ts";
 
 const run = promisify(execFile);
 
+test("issue failure reports the human question from a run artifact", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "ralphworks-feedback-"));
+  const bin = join(directory, "bin");
+  await mkdir(bin);
+  await writeFile(join(directory, "result.json"), JSON.stringify({ status: "needs_input", reason: "Keep the legacy API?" }));
+  await writeFile(
+    join(bin, "gh"),
+    `#!/bin/sh
+if [ "$1 $2" = "run download" ]; then
+  mkdir -p "$RUNNER_TEMP/ralph-feedback/runs"
+  cp "$MOCK_RESULT" "$RUNNER_TEMP/ralph-feedback/runs/result.json"
+elif [ "$1 $2" = "issue comment" ]; then
+  cp "$5" "$MOCK_COMMENT"
+fi
+`,
+    { mode: 0o755 },
+  );
+  const env = {
+    ...process.env,
+    PATH: `${bin}:${process.env.PATH}`,
+    RUNNER_TEMP: directory,
+    GITHUB_RUN_ID: "123",
+    GH_TOKEN: "test-token",
+    GH_REPO: "owner/repo",
+    ISSUE_NUMBER: "42",
+    RUN_URL: "https://github.com/owner/repo/actions/runs/123",
+    MOCK_RESULT: join(directory, "result.json"),
+    MOCK_COMMENT: join(directory, "comment.md"),
+  };
+  await run("bash", ["-e", "-c", stepScript(ISSUE_WORKFLOW, "Report failure on issue").replace("${{ github.token }}", "test-token")], {
+    env,
+  });
+  const comment = await readFile(join(directory, "comment.md"), "utf8");
+  assert.match(comment, /RalphWorks needs human input:/);
+  assert.match(comment, /Keep the legacy API\?/);
+  assert.match(comment, /re-add ralphworks:run/);
+
+  await writeFile(join(directory, "result.json"), JSON.stringify({ status: "failed", reason: "dependency install failed" }));
+  await run("bash", ["-e", "-c", stepScript(ISSUE_WORKFLOW, "Report failure on issue").replace("${{ github.token }}", "test-token")], {
+    env,
+  });
+  const fallback = await readFile(join(directory, "comment.md"), "utf8");
+  assert.match(fallback, /could not create a PR/);
+  assert.doesNotMatch(fallback, /needs human input/);
+});
+
 function stepScript(workflow: string, name: string): string {
   const lines = workflow.split("\n");
   const start = lines.indexOf(`      - name: ${name}`);
   assert.notEqual(start, -1);
-  assert.equal(lines[start + 1], "        run: |");
+  const runIndex = lines.findIndex((line, index) => index > start && line === "        run: |");
+  assert.notEqual(runIndex, -1);
   const commands: string[] = [];
-  for (const line of lines.slice(start + 2)) {
+  for (const line of lines.slice(runIndex + 1)) {
     if (!line.startsWith("          ")) break;
     commands.push(line.slice(10));
   }

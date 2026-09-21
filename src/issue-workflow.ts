@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV } from "./workflow-execution.ts";
 
 export const ISSUE_WORKFLOW = [
   "name: RalphWorks Issue",
@@ -181,11 +181,18 @@ export const ISSUE_WORKFLOW = [
   "          PR_URL: ${{ steps.pr.outputs.url }}",
   "        run: |",
   "          gh issue edit \"$ISSUE_NUMBER\" --remove-label 'ralphworks:run' || true",
+  "          gh issue edit \"$ISSUE_NUMBER\" --remove-label 'ralphworks:blocked' || true",
   '          gh issue comment "$ISSUE_NUMBER" --body "RalphWorks created draft PR $PR_URL. Run and artifacts: $RUN_URL"',
   "      - name: Report failure on issue",
   "        if: failure() && env.GH_TOKEN != ''",
   "        run: |",
   "          gh issue edit \"$ISSUE_NUMBER\" --remove-label 'ralphworks:run' || true",
-  '          gh issue comment "$ISSUE_NUMBER" --body "RalphWorks could not create a PR. Inspect the [run and artifacts]($RUN_URL), resolve the cause, then re-add the \\`ralphworks:run\\` label to retry."',
+  "          gh issue edit \"$ISSUE_NUMBER\" --add-label 'ralphworks:blocked' || true",
+  ...failureComment(
+    "ralphworks-issue-result",
+    "ISSUE_NUMBER",
+    "ralphworks:run",
+    "RalphWorks could not create a PR. Inspect the run, resolve the cause, then re-add ralphworks:run to retry.",
+  ),
   "",
 ].join("\n");

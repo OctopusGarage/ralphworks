@@ -155,6 +155,7 @@ A completion tag requests completion. A configured check failure prevents comple
 Terminal states are:
 
 - `completed`: the completion condition and all configured checks passed.
+- `needs_input`: the agent asked one concrete question that requires a person; the run stops before checks or verified commits. Read `reason` in `ralphworks status .ralph/current`, update the task, and run again.
 - `blocked`: the agent reported an error, changed Git HEAD, made no progress, or violated another guard.
 - `cancelled`: the local CLI received Ctrl+C or SIGTERM and stopped the active worker or check before releasing its lock.
 - `max_iterations`: the loop exhausted its iteration limit.
@@ -281,6 +282,7 @@ git apply .ralph/remote/<run-id>/export/change.patch
 For another remote run of an unfinished task on the same unchanged branch, use `ralphworks remote ralphworks.yaml --repo owner/repo --ref branch --resume-from <run-id>`. The workflow checks the previous run's branch, commit, and task path, then imports its patch and progress. The next artifact contains a cumulative patch against the branch commit. If the branch changed, review and apply the patch manually before a fresh run. Resume requires an artifact from this version or later. `commit: verified` requires a clean worktree, so review and commit a previous patch before a fresh run instead.
 
 `remote` accepts `--repo`, `--ref`, and `--resume-from`; model selection and checks must come from Actions configuration and the pushed YAML job. The CLI preserves task terminal states such as `blocked` and `max_iterations`. If the task completes but a later workflow step fails, it reports `failed`.
+When a remote run returns `needs_input`, read its `reason` and run URL. Update the pushed task before starting a fresh run; `--resume-from` requires the original task and unchanged branch, so it is not suitable after editing the task.
 
 ### Issue and PR workflows
 

@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PRD_IMPLEMENT_WORKFLOW = [
   "name: RalphWorks Implement PRD",
@@ -193,6 +193,11 @@ export const PRD_IMPLEMENT_WORKFLOW = [
   "          gh issue edit \"$PRD_NUMBER\" --remove-label 'ralphworks:in-progress' || true",
   "          gh issue edit \"$PRD_NUMBER\" --remove-label 'ralphworks:implement-prd' || true",
   "          gh issue edit \"$PRD_NUMBER\" --add-label 'ralphworks:blocked' || true",
-  '          gh issue comment "$PRD_NUMBER" --body "RalphWorks PRD implementation failed at sub-issue #$CHILD_NUMBER. Inspect $RUN_URL before retrying."',
+  ...failureComment(
+    "ralphworks-prd-result",
+    "PRD_NUMBER",
+    "ralphworks:implement-prd",
+    "RalphWorks PRD implementation failed. Inspect this run and its selected sub-issue, then re-add ralphworks:implement-prd to retry.",
+  ),
   "",
 ].join("\n");

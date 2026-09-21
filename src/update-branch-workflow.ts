@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const UPDATE_BRANCH_WORKFLOW = [
   "name: RalphWorks Update Branch",
@@ -169,11 +169,18 @@ export const UPDATE_BRANCH_WORKFLOW = [
   '          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" push --force-with-lease="refs/heads/$BRANCH:$head" origin "$commit:refs/heads/$BRANCH"',
   '          gh pr comment "$PR_NUMBER" --body "RalphWorks updated the branch with merge commit $commit. Run: $RUN_URL"',
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:update-branch' || true",
+  "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:blocked' || true",
   "      - name: Report failure",
   "        if: failure() && env.GH_TOKEN != ''",
   "        run: |",
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:update-branch' || true",
   "          gh pr edit \"$PR_NUMBER\" --add-label 'ralphworks:blocked' || true",
-  '          gh pr comment "$PR_NUMBER" --body "RalphWorks branch update failed. Inspect $RUN_URL, then re-add the update-branch label to retry."',
+  ...failureComment(
+    "ralphworks-update",
+    "PR_NUMBER",
+    "ralphworks:update-branch",
+    "RalphWorks branch update failed. Inspect the run, then re-add ralphworks:update-branch to retry.",
+    "pr",
+  ),
   "",
 ].join("\n");

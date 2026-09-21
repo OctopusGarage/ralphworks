@@ -48,6 +48,7 @@ stateDiagram-v2
     [*] --> Running
     Running --> Running: progress and another iteration is allowed
     Running --> Completed: completion requested and checks pass
+    Running --> NeedsInput: agent asks a person to decide
     Running --> Blocked: agent error, HEAD mutation, or no progress
     Running --> Cancelled: local interrupt
     Running --> MaxIterations: iteration limit reached
@@ -55,6 +56,7 @@ stateDiagram-v2
     Running --> BudgetExhausted: reported cost exceeds budget
     Running --> Failed: orchestration or Git failure
     Completed --> [*]
+    NeedsInput --> [*]
     Blocked --> [*]
     Cancelled --> [*]
     MaxIterations --> [*]
@@ -70,6 +72,8 @@ Every iteration receives the same job plus a bounded view of the persisted progr
 RalphWorks injects a completion instruction into the Pi prompt. The configured completion value defaults to `DONE`; the runner recognizes it only in the assistant output protocol. The task text containing the same word does not complete the run.
 
 Checks run after the agent step. When no checks are configured, the check set is considered satisfied. With checks, all commands must exit successfully during the same iteration. A failed check allows another iteration while limits permit; a bounded excerpt of its output is carried into the next Pi session.
+
+An agent may end its handoff with `<needs-input>one concrete question and relevant findings</needs-input>` when it cannot resolve a decision or missing information itself. The runner returns `needs_input`; the orchestrator records the question and stops before checks or verified commits. The next run starts after a person updates the task or Issue.
 
 Every run defaults to a 30-minute wall-clock limit unless the job or CLI supplies a value. Unattended Docker and GitHub Actions runs also default to $3. CLI Pi iterations run in a child process; at the deadline or on a local interrupt, RalphWorks terminates its process group before releasing the lock. Active checks are stopped in the same way. Custom in-process runners must honor abort signals. Cost is known after Pi reports the iteration, so a single iteration can cross the configured ceiling.
 

@@ -66,6 +66,19 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(issueAction, /git apply --check/);
   assert.match(issueAction, /gh pr create --draft/);
   assert.match(issueAction, /if: failure\(\)/);
+  for (const file of [
+    "ralphworks-issue.yml",
+    "ralphworks-prd-split.yml",
+    "ralphworks-prd-implement.yml",
+    "ralphworks-pr-review.yml",
+    "ralphworks-pr-feedback.yml",
+    "ralphworks-update-branch.yml",
+  ]) {
+    const workflow = await readFile(join(workspace, ".github", "workflows", file), "utf8");
+    assert.match(workflow, /\.status == "needs_input"/);
+    assert.match(workflow, /needs human input/);
+    assert.match(workflow, /gh run download "\$GITHUB_RUN_ID"/);
+  }
   for (const [file, trigger] of [
     ["ralphworks-prd-split.yml", "ralphworks:to-issues"],
     ["ralphworks-prd-implement.yml", "ralphworks:implement-prd"],

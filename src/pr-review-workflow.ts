@@ -1,4 +1,4 @@
-import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PR_REVIEW_WORKFLOW = [
   "name: RalphWorks PR Review",
@@ -111,11 +111,18 @@ export const PR_REVIEW_WORKFLOW = [
   '          gh api --method POST "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" -f event=COMMENT -F body=@"$report" >/dev/null',
   '          gh pr ready "$PR_NUMBER" || true',
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:review' || true",
+  "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:blocked' || true",
   "      - name: Report failure",
   "        if: failure() && env.GH_TOKEN != ''",
   "        run: |",
   "          gh pr edit \"$PR_NUMBER\" --remove-label 'ralphworks:review' || true",
   "          gh pr edit \"$PR_NUMBER\" --add-label 'ralphworks:blocked' || true",
-  '          gh pr comment "$PR_NUMBER" --body "RalphWorks review failed. Inspect $RUN_URL, then re-add the review label to retry."',
+  ...failureComment(
+    "ralphworks-review",
+    "PR_NUMBER",
+    "ralphworks:review",
+    "RalphWorks review failed. Inspect the run, then re-add ralphworks:review to retry.",
+    "pr",
+  ),
   "",
 ].join("\n");

@@ -1,7 +1,7 @@
 import type { RalphJob } from "./job.ts";
 
 export type IterationResult = {
-  status: "continue" | "complete" | "blocked";
+  status: "continue" | "complete" | "blocked" | "needs_input";
   summary: string;
   output?: string;
   events?: RunnerEvent[];
