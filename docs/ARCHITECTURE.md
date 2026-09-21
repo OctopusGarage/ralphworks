@@ -116,7 +116,7 @@ Remote and clone modes deliberately return a patch. They do not mutate the calle
 ## Intentional limits
 
 - The YAML parser supports a small reviewed subset rather than general YAML.
-- One run cannot resume after its process exits.
+- Local runs start a new process and reuse saved progress for the same task. Remote runs can restore a prior run's patch and progress on the same unchanged branch with `--resume-from`.
 - YAML `mode: remote` is reserved and blocked; GitHub delivery uses the separate `remote` command.
 - There is no automatic branch, push, pull request, merge, deployment, dashboard, or general command policy engine.
 - Docker is an execution boundary, not a trust boundary for arbitrary job and check commands.

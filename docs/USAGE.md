@@ -229,7 +229,7 @@ git apply .ralph/remote/<run-id>/export/change.patch
 
 For another remote run of an unfinished task on the same unchanged branch, use `ralphworks remote ralphworks.yaml --repo owner/repo --ref branch --resume-from <run-id>`. The workflow checks the previous run's branch, commit, and task path, then imports its patch and progress. The next artifact contains a cumulative patch against the branch commit. If the branch changed, review and apply the patch manually before a fresh run. Resume requires an artifact from this version or later. `commit: verified` requires a clean worktree, so review and commit a previous patch before a fresh run instead.
 
-`remote` accepts only `--repo` and `--ref`; model selection and checks must come from Actions configuration and the pushed YAML job. The CLI preserves task terminal states such as `blocked` and `max_iterations`. If the task completes but a later workflow step fails, it reports `failed`.
+`remote` accepts `--repo`, `--ref`, and `--resume-from`; model selection and checks must come from Actions configuration and the pushed YAML job. The CLI preserves task terminal states such as `blocked` and `max_iterations`. If the task completes but a later workflow step fails, it reports `failed`.
 
 ## Operational guidance
 
