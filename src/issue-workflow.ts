@@ -1,3 +1,5 @@
+import { PROVIDER_CREDENTIAL_ENV } from "./workflow-execution.ts";
+
 export const ISSUE_WORKFLOW = [
   "name: RalphWorks Issue",
   "",
@@ -81,12 +83,7 @@ export const ISSUE_WORKFLOW = [
   "      - name: Run RalphWorks",
   "        id: ralph",
   "        env:",
-  "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
-  "          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}",
-  "          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}",
-  "          ZAI_CODING_CN_API_KEY: ${{ secrets.ZAI_CODING_CN_API_KEY }}",
-  "          RALPHWORKS_AUTH_SECRET_NAME: ${{ vars.RALPHWORKS_AUTH_SECRET }}",
-  "          RALPHWORKS_AUTH_SECRET_VALUE: ${{ secrets[vars.RALPHWORKS_AUTH_SECRET] }}",
+  ...PROVIDER_CREDENTIAL_ENV,
   "        run: |",
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then',
