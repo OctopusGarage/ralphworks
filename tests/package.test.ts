@@ -9,7 +9,13 @@ test("package publishes compiled JavaScript CLI bins", async () => {
     ralph: "./dist/cli.js",
     ralphworks: "./dist/cli.js",
   });
-  assert.deepEqual(pkg.files, ["dist/", "docs/ARCHITECTURE.md", "docs/USAGE.md", "docs/assets/ralphworks-overview.svg"]);
+  assert.deepEqual(pkg.files, [
+    "dist/",
+    "docs/ARCHITECTURE.md",
+    "docs/ISSUE_WORKFLOWS.md",
+    "docs/USAGE.md",
+    "docs/assets/ralphworks-overview.svg",
+  ]);
   assert.equal(pkg.scripts.build, "tsc -p tsconfig.build.json");
   assert.equal(pkg.scripts.prepack, "pnpm build");
 });

@@ -284,6 +284,8 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 
 ### Issue to draft PR workflow
 
+See the [step-by-step setup guide](ISSUE_WORKFLOWS.md) for installation, credentials, labels, and examples for every issue and PR path.
+
 `ralphworks init` also creates eight scenario workflows in `.github/workflows/`. Commit them to the default branch to enable issue and PR driven work. Existing workflows are never overwritten. This does not change the `remote` command or its read-only artifact delivery.
 
 Configure `RALPHWORKS_MODEL` and the provider credential as above. Set repository variable `RALPHWORKS_ISSUE_CHECK` to one acceptance command, such as `npm test`. Implementation workflows require this independent check and limit each run to five iterations, 30 minutes, and $3 of reported model cost. Set secret `RALPHWORKS_ISSUE_TOKEN` to a fine-grained token with repository Contents, Issues, and Pull requests write access. Write actions use that token only in delivery jobs or narrow status steps so pushed branches, new labels, and draft PRs trigger normal follow-up workflows. The account behind the token must be allowed to push branches and open PRs. Create the labels in the table below in the target repository.
