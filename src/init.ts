@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { ISSUE_WORKFLOW } from "./issue-workflow.ts";
 
 export type InitResult = {
   created: string[];
@@ -13,6 +14,7 @@ type Template = {
 };
 
 const TEMPLATES: Template[] = [
+  { path: ".github/workflows/ralphworks-issue.yml", content: ISSUE_WORKFLOW },
   {
     path: ".github/workflows/ralphworks.yml",
     content: [

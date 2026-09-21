@@ -11,7 +11,7 @@ test("initProject creates the workflow and ignores runtime state", async () => {
 
   const result = await initProject(workspace);
 
-  assert.deepEqual(result.created, [".github/workflows/ralphworks.yml", ".gitignore"]);
+  assert.deepEqual(result.created, [".github/workflows/ralphworks-issue.yml", ".github/workflows/ralphworks.yml", ".gitignore"]);
   assert.deepEqual(result.skipped, []);
   assert.deepEqual(result.updated, []);
   assert.equal(await readFile(join(workspace, ".gitignore"), "utf8"), ".ralph/\n");
@@ -41,6 +41,18 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(action, /run-name: RalphWorks \$\{\{ inputs\.request_id \}\}/);
   assert.match(action, /node "\$RUNNER_TEMP\/ralphworks\/dist\/cli\.js" run "\$RALPH_TASK" --executor host/);
   assert.match(action, /git add -N --all\n/);
+
+  const issueAction = await readFile(join(workspace, ".github", "workflows", "ralphworks-issue.yml"), "utf8");
+  assert.match(issueAction, /types: \[labeled\]/);
+  assert.match(issueAction, /github\.event\.label\.name == 'ralphworks:run'/);
+  assert.match(issueAction, /collaborators\/\$LABEL_ACTOR\/permission/);
+  assert.match(issueAction, /RALPHWORKS_ISSUE_CHECK is required/);
+  assert.match(issueAction, /contents: read/);
+  assert.match(issueAction, /RALPHWORKS_ISSUE_TOKEN/);
+  assert.match(issueAction, /\.status == "completed"/);
+  assert.match(issueAction, /git apply --check/);
+  assert.match(issueAction, /gh pr create --draft/);
+  assert.match(issueAction, /if: failure\(\)/);
 });
 
 test("initProject skips existing files without overwriting them", async () => {
@@ -50,7 +62,7 @@ test("initProject skips existing files without overwriting them", async () => {
   const second = await initProject(workspace);
 
   assert.deepEqual(second.created, []);
-  assert.deepEqual(second.skipped, [".github/workflows/ralphworks.yml"]);
+  assert.deepEqual(second.skipped, [".github/workflows/ralphworks-issue.yml", ".github/workflows/ralphworks.yml"]);
   assert.deepEqual(second.updated, []);
   assert.equal(await readFile(join(workspace, ".gitignore"), "utf8"), ".ralph/\n");
 });
