@@ -21,6 +21,7 @@ export async function runRemoteJob(options: {
   repo: string;
   ref: string;
   jobPath: string;
+  resumeRunId?: string;
   cwd?: string;
   command?: Command;
 }): Promise<RemoteResult> {
@@ -28,7 +29,8 @@ export async function runRemoteJob(options: {
   const requestId = randomUUID();
   const repoArgs = ["--repo", options.repo];
   const dispatched = await command(["workflow", "run", "ralphworks.yml", ...repoArgs, "--ref", options.ref,
-    "-f", `task=${options.jobPath}`, "-f", `request_id=${requestId}`]);
+    "-f", `task=${options.jobPath}`, "-f", `request_id=${requestId}`,
+    ...(options.resumeRunId ? ["-f", `resume_run_id=${options.resumeRunId}`] : [])]);
   if (dispatched.exitCode !== 0) throw new Error(`remote dispatch failed: ${dispatched.stderr || dispatched.stdout}`);
   let runId = Number(/\/actions\/runs\/(\d+)/.exec(dispatched.stdout)?.[1]);
   if (!runId) {

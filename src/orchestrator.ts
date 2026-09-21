@@ -21,6 +21,7 @@ export type RalphRunResult = {
   costUsd: number;
   commits: string[];
   reason?: string;
+  lastSummary?: string;
 };
 
 type RunOptions = {
@@ -70,6 +71,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
   const commits: string[] = [];
   let costUsd = 0;
   let reason: string | undefined;
+  let lastSummary: string | undefined;
   try {
     const originalTask = job.task;
     if (job.promptFile) {
@@ -129,6 +131,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         for (const runnerEvent of iterationResult.events ?? []) {
           await appendEvent(eventsPath, { ...event(runnerEvent.type, job, iteration), details: runnerEvent.details });
         }
+        lastSummary = iterationResult.summary.slice(0, 600);
         costUsd += iterationResult.costUsd ?? 0;
         if (controller.signal.aborted || (deadline !== undefined && Date.now() >= deadline)) {
           status = "timed_out";
@@ -191,6 +194,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           break;
         }
       }
+      if (status === "max_iterations" && !reason) reason = `iteration limit reached after ${iterations} iterations`;
     }
   } catch (error) {
     status = "failed";
@@ -209,6 +213,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
     costUsd,
     commits,
     ...(reason ? { reason } : {}),
+    ...(lastSummary ? { lastSummary } : {}),
   };
   await writeFile(resultPath, JSON.stringify(result, null, 2) + "\n", "utf8");
   await writeFile(join(cwd, ".ralph", "current"), join("runs", basename(runDir)) + "\n", "utf8");

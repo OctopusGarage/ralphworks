@@ -7,6 +7,7 @@ export type RunStatusSummary = {
   iterations: number;
   runDir: string;
   reason?: string;
+  lastSummary?: string;
   failedCheck?: { command: string; exitCode: number; detail: string };
   checks: {
     total: number;
@@ -20,6 +21,7 @@ type ResultJson = {
   iterations: number;
   runDir: string;
   reason?: string;
+  lastSummary?: string;
   checks?: Array<{ command: string; exitCode: number; stdout?: string; stderr?: string }>;
 };
 
@@ -34,6 +36,7 @@ export async function readRunStatus(target: string): Promise<RunStatusSummary> {
     iterations: raw.iterations,
     runDir,
     ...(raw.reason ? { reason: raw.reason } : {}),
+    ...(raw.lastSummary ? { lastSummary: raw.lastSummary } : {}),
     ...(failedCheck ? { failedCheck: {
       command: failedCheck.command,
       exitCode: failedCheck.exitCode,

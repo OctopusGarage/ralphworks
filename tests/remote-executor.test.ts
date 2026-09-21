@@ -29,6 +29,20 @@ test("remote dispatch watches a run and downloads its result", async () => {
   assert.equal(JSON.parse(await readFile(join(result.artifactDir, "result.json"), "utf8")).status, "completed");
 });
 
+test("remote dispatch passes an explicit resume source", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-remote-"));
+  let dispatch: string[] = [];
+  await runRemoteJob({ repo: "OctopusGarage/mbti-lab", ref: "ralph-test", jobPath: "job.yaml", resumeRunId: "123", cwd,
+    command: async (args) => {
+      if (args[0] === "workflow") { dispatch = args; return { exitCode: 0, stdout: "https://github.com/OctopusGarage/mbti-lab/actions/runs/456\n", stderr: "" }; }
+      if (args[1] === "watch") return { exitCode: 1, stdout: "", stderr: "" };
+      if (args[1] === "download") return { exitCode: 1, stdout: "", stderr: "" };
+      throw new Error(`unexpected gh call: ${args.join(" ")}`);
+    },
+  });
+  assert.ok(dispatch.includes("resume_run_id=123"));
+});
+
 test("remote preserves the downloaded terminal status when Actions exits nonzero", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "ralphworks-remote-"));
   const result = await runRemoteJob({

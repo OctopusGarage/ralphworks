@@ -27,6 +27,16 @@ test("an agent run can complete without external checks", async () => {
   assert.equal(result.status, "completed");
 });
 
+test("iteration limit includes the last handoff", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
+  const result = await runLocalJob(jobPath, { cwd, runner: {
+    async runIteration() { return { status: "continue", summary: "Next: finish the export test" }; },
+  } });
+  assert.equal(result.status, "max_iterations");
+  assert.match(result.reason ?? "", /iteration limit reached after 1 iteration/);
+  assert.equal(result.lastSummary, "Next: finish the export test");
+});
+
 test("each iteration receives durable progress from the previous iteration", async () => {
   const { cwd, jobPath } = await fixture(["max_iterations: 2", "checks:", "  - node -e \"process.exit(0)\""]);
   const seen: string[] = [];

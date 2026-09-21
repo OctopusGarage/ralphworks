@@ -16,7 +16,7 @@ const USAGE = `RalphWorks
 Usage:
   ralphworks init
   ralphworks run <task-text|task-file|job.yaml> [--context PATH] [--runner dry-run|pi] [--executor host|docker|docker-clone] [--model provider/model] [--check COMMAND] [--max-iterations N] [--max-minutes N] [--max-cost-usd N] [--check-timeout N] [--commit none|verified] [--completion-promise VALUE] [--pass-env NAME] [--pi-agent-dir PATH]
-  ralphworks remote <task-text|task-file|job.yaml> [--repo owner/name] [--ref branch]
+  ralphworks remote <task-file|job.yaml> [--repo owner/name] [--ref branch] [--resume-from RUN_ID]
   ralphworks status <run-dir>
   ralphworks trace <events.jsonl>
 
@@ -124,6 +124,7 @@ async function main(argv: string[]): Promise<number> {
       console.log(`iterations=${result.iterations}`);
       console.log(`runDir=${result.runDir}`);
       if (result.reason) console.log(`reason=${result.reason}`);
+      if (result.status !== "completed" && result.lastSummary) console.log(`lastSummary=${result.lastSummary}`);
       const failedCheck = result.checks.findLast((check) => check.exitCode !== 0);
       if (failedCheck) {
         console.log(`failedCheck=${failedCheck.command} (exit ${failedCheck.exitCode})`);
@@ -140,6 +141,7 @@ async function main(argv: string[]): Promise<number> {
         console.log(`iterations=${status.iterations}`);
         console.log(`checks=${status.checks.total} total, ${status.checks.failed} failed`);
         if (status.reason) console.log(`reason=${status.reason}`);
+        if (status.status !== "completed" && status.lastSummary) console.log(`lastSummary=${status.lastSummary}`);
         if (status.failedCheck) {
           console.log(`failedCheck=${status.failedCheck.command} (exit ${status.failedCheck.exitCode})`);
           if (status.failedCheck.detail) console.log(`checkOutput=${status.failedCheck.detail}`);
@@ -156,12 +158,19 @@ async function main(argv: string[]): Promise<number> {
       }
       return 0;
     case "remote": {
-      const unsupported = rest.find((arg) => arg.startsWith("--") && arg !== "--repo" && arg !== "--ref");
+      const unsupported = rest.find((arg) => arg.startsWith("--") && arg !== "--repo" && arg !== "--ref" && arg !== "--resume-from");
       if (unsupported) {
         console.error(`${unsupported} is not supported by remote; configure the pushed job and GitHub Actions variables instead`);
         return 1;
       }
-      const runArgs = parseRunArgs(rest);
+      const resumeIndex = rest.indexOf("--resume-from");
+      const resumeRunId = resumeIndex < 0 ? undefined : rest[resumeIndex + 1];
+      if (resumeIndex >= 0 && (!resumeRunId || !/^[1-9]\d*$/.test(resumeRunId))) {
+        console.error("--resume-from requires a positive GitHub Actions run ID");
+        return 1;
+      }
+      const remoteArgs = resumeIndex < 0 ? rest : rest.filter((_, index) => index !== resumeIndex && index !== resumeIndex + 1);
+      const runArgs = parseRunArgs(remoteArgs);
       if (runArgs instanceof Error) {
         console.error(runArgs.message);
         return 1;
@@ -173,7 +182,7 @@ async function main(argv: string[]): Promise<number> {
         repo ??= inferred.repo;
         ref ??= inferred.ref;
       }
-      const result = await runRemoteJob({ repo, ref, jobPath: target });
+      const result = await runRemoteJob({ repo, ref, jobPath: target, resumeRunId });
       console.log(`RalphWorks remote ${result.status}`);
       console.log(`runUrl=${result.runUrl}`);
       console.log(`artifactDir=${result.artifactDir}`);

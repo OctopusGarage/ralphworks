@@ -68,6 +68,8 @@ A useful task states the goal, allowed scope, constraints, and verifiable accept
 
 The agent runs checks appropriate to the task. Add one or more `--check` options when the orchestrator must independently validate every iteration:
 
+For unattended or important changes, provide checks that actually test the acceptance criteria. Without checks, RalphWorks relies on the agent's completion claim.
+
 ```bash
 ralphworks run 'Fix the login endpoint' \
   --check 'npm test' \
@@ -178,7 +180,7 @@ Configure these values in the target GitHub repository:
 
 - Variable `RALPHWORKS_MODEL`: a Pi `provider/model-id`.
 - Variable `RALPHWORKS_AUTH_SECRET`: the name of the GitHub secret containing the Pi provider's API key (for example, `GEMINI_API_KEY`). Existing Anthropic, OpenAI, NVIDIA, and Z.AI secret names also work without this variable.
-- Optional variable `RALPHWORKS_REF`: RalphWorks Git branch, tag, or commit SHA to run. The generated workflow defaults to the `v0.1.1` release tag. Set this variable when using a fork or another version. The resolved SHA is included in the artifact.
+- Optional variable `RALPHWORKS_REF`: RalphWorks Git branch, tag, or commit SHA to run. The generated workflow defaults to the `v0.1.2` release tag. Set this variable when using a fork or another version. The resolved SHA is included in the artifact.
 - Optional variable `RALPHWORKS_SOURCE_REPO`: `owner/repo` for the RalphWorks source. It defaults to `OctopusGarage/ralphworks`; set it to your fork when needed.
 - Secret `RALPHWORKS_REPO_TOKEN`: required only when the selected RalphWorks source repository is private. It needs read access.
 
@@ -197,7 +199,13 @@ git apply --check .ralph/remote/<run-id>/export/change.patch
 git apply .ralph/remote/<run-id>/export/change.patch
 ```
 
-To continue a remote task after a run reaches a limit, apply its patch on the task branch, review the changes, commit and push that branch, then dispatch the same task again. The next run sees the updated source. Remote progress notes are downloaded for review but are not imported into the next GitHub Actions run; add any essential notes to the task file before pushing. Check the patch and branch before each dispatch to avoid applying the same changes twice.
+To continue an unfinished remote run on the same unchanged branch, use its GitHub Actions run ID:
+
+```bash
+ralphworks remote ralphworks.yaml --repo owner/repo --ref ralph/task-branch --resume-from <run-id>
+```
+
+RalphWorks checks that the previous run used the same branch, commit, and task path, then restores its patch and progress before the next loop. The new artifact contains the cumulative patch. If the branch has changed, review and apply the previous patch manually before starting a fresh run. Resume requires an artifact produced by this version or later. `commit: verified` cannot resume an uncommitted patch; use a fresh run after reviewing and committing that patch.
 
 ## How it works
 

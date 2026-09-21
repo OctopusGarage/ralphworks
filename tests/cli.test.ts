@@ -67,6 +67,17 @@ test("CLI remote rejects local-only flags before dispatch", async () => {
   );
 });
 
+test("CLI remote rejects an invalid resume run ID before dispatch", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
+  await assert.rejects(
+    execFileAsync("node", [CLI, "remote", "job.yaml", "--resume-from", "../other"], { cwd: workspace }),
+    (error: unknown) => {
+      assert.match(String((error as { stderr?: string }).stderr), /positive GitHub Actions run ID/);
+      return true;
+    },
+  );
+});
+
 test("CLI run reports when docker-clone cannot infer the current git repo", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
   const jobPath = join(workspace, "job.yaml");
