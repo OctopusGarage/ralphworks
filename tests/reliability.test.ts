@@ -33,7 +33,7 @@ test("iteration limit includes the last handoff", async () => {
     async runIteration() { return { status: "continue", summary: "Next: finish the export test" }; },
   } });
   assert.equal(result.status, "max_iterations");
-  assert.match(result.reason ?? "", /iteration limit reached after 1 iteration/);
+  assert.equal(result.reason, "iteration limit reached after 1 iteration");
   assert.equal(result.lastSummary, "Next: finish the export test");
 });
 

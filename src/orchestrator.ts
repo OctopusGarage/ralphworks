@@ -194,7 +194,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           break;
         }
       }
-      if (status === "max_iterations" && !reason) reason = `iteration limit reached after ${iterations} iterations`;
+      if (status === "max_iterations" && !reason) reason = `iteration limit reached after ${iterations} ${iterations === 1 ? "iteration" : "iterations"}`;
     }
   } catch (error) {
     status = "failed";

@@ -180,7 +180,7 @@ Configure these values in the target GitHub repository:
 
 - Variable `RALPHWORKS_MODEL`: a Pi `provider/model-id`.
 - Variable `RALPHWORKS_AUTH_SECRET`: the name of the GitHub secret containing the Pi provider's API key (for example, `GEMINI_API_KEY`). Existing Anthropic, OpenAI, NVIDIA, and Z.AI secret names also work without this variable.
-- Optional variable `RALPHWORKS_REF`: RalphWorks Git branch, tag, or commit SHA to run. The generated workflow defaults to the `v0.1.2` release tag. Set this variable when using a fork or another version. The resolved SHA is included in the artifact.
+- Optional variable `RALPHWORKS_REF`: RalphWorks Git branch, tag, or commit SHA to run. The generated workflow defaults to the `v0.1.3` release tag. Set this variable when using a fork or another version. The resolved SHA is included in the artifact.
 - Optional variable `RALPHWORKS_SOURCE_REPO`: `owner/repo` for the RalphWorks source. It defaults to `OctopusGarage/ralphworks`; set it to your fork when needed.
 - Secret `RALPHWORKS_REPO_TOKEN`: required only when the selected RalphWorks source repository is private. It needs read access.
 
