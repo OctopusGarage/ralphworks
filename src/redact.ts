@@ -5,6 +5,7 @@ export function redactSensitiveValues(text: string, env: NodeJS.ProcessEnv = pro
   for (const [name, value] of Object.entries(env)) {
     if (!SENSITIVE_NAME.test(name) || !value || value.length < 8) continue;
     redacted = redacted.split(value).join("[REDACTED]");
+    redacted = redacted.split(JSON.stringify(value).slice(1, -1)).join("[REDACTED]");
   }
   return redacted;
 }

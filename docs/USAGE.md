@@ -142,7 +142,7 @@ Terminal states are:
 
 Only `completed` returns CLI exit code zero. The local CLI returns 130 after Ctrl+C and 143 after SIGTERM. It runs each Pi iteration in a child process; cancellation or a wall clock timeout terminates that process group before releasing the worktree lock. Cleanup can finish shortly after the configured limit. Embedders using a custom in-process runner must make it respond to abort signals.
 
-Run records omit raw assistant text deltas. The runner keeps at most 1,000 structural events per iteration, event details over 2 KiB are omitted, and check output is limited to the last 8 KiB per stream. Values of environment variables named like `*_API_KEY`, `*_TOKEN`, or `*_SECRET` are masked in recorded text when they are at least eight characters long. This cannot detect credentials read from arbitrary files or secrets transformed by a command. Review `.ralph/` and remote artifacts before sharing them; keep task and check output free of secrets.
+Run records omit raw assistant text deltas. The runner keeps at most 1,000 structural events per iteration, event details over 2 KiB are omitted, and check output is limited to the last 8,192 characters per stream. Values of environment variables named like `*_API_KEY`, `*_TOKEN`, or `*_SECRET` are masked in recorded text when they are at least eight characters long. This cannot detect credentials read from arbitrary files or secrets transformed by a command. Review `.ralph/` and remote artifacts before sharing them; keep task and check output free of secrets.
 
 ## Checks and Git policy
 

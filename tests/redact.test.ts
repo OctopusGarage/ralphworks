@@ -11,3 +11,8 @@ test("redactSensitiveValues masks configured credential values in persisted text
     "failed: [REDACTED]; ordinary-value",
   );
 });
+
+test("redactSensitiveValues also masks credentials in JSON strings", () => {
+  const secret = 'credential-"quoted"';
+  assert.equal(redactSensitiveValues(JSON.stringify({ output: secret }), { GH_TOKEN: secret }), '{"output":"[REDACTED]"}');
+});
