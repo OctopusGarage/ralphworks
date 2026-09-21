@@ -282,6 +282,16 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 
 `remote` accepts `--repo`, `--ref`, and `--resume-from`; model selection and checks must come from Actions configuration and the pushed YAML job. The CLI preserves task terminal states such as `blocked` and `max_iterations`. If the task completes but a later workflow step fails, it reports `failed`.
 
+### Issue to draft PR workflow
+
+`ralphworks init` also creates `.github/workflows/ralphworks-issue.yml` in the target repository. Commit it to the default branch to enable an optional issue-driven path. It does not change the `remote` command or its read-only artifact delivery.
+
+Configure `RALPHWORKS_MODEL` and the provider credential as above. Set repository variable `RALPHWORKS_ISSUE_CHECK` to one acceptance command, such as `npm test`. The issue workflow requires this independent check and limits each run to five iterations, 30 minutes, and $3 of reported model cost. Set secret `RALPHWORKS_ISSUE_TOKEN` to a fine-grained token with repository Contents, Issues, and Pull requests write access. It uses that token only in the delivery job so the pushed branch and draft PR trigger normal PR checks. The account behind the token must be allowed to push branches and open PRs. Create the `ralphworks:run` label in the target repository.
+
+A maintainer with write access adds `ralphworks:run` to an open issue. The workflow verifies the labeling actor, reads the issue title and body as the task, runs RalphWorks on the default branch, and uploads a patch and run records. Only a completed result with passing checks and a nonempty patch proceeds. A separate delivery job verifies the original base commit, applies the patch, pushes `ralphworks/issue-<number>`, and opens a draft PR containing `Closes #<number>` and a link to the run. The issue stays open until the PR is merged. On failure, the workflow removes the trigger label and comments with the run link; inspect the run and any existing branch before re-adding the label. An existing issue branch or open PR blocks a duplicate run. This workflow does not automatically review, merge, or close the issue.
+
+Issue text is agent input. Grant the trigger label only to trusted maintainers, and review generated code and run artifacts before merging. The workflow keeps repository write credentials out of the agent execution job, but the model credential and checkout are available while it runs the task. Use repository branch rules and required PR checks for the resulting PR.
+
 ## Operational guidance
 
 - Give each job one clear objective and measurable acceptance criteria.
