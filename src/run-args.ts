@@ -35,6 +35,7 @@ export type RunArgs = {
   checks?: string[];
   contexts?: string[];
   jobOverrides?: JobOverrides;
+  totalMinutes?: number;
 };
 
 export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunArgs | Error {
@@ -158,6 +159,14 @@ export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunA
       if (value instanceof Error) return value;
       if (arg === "--max-minutes") jobOverrides.maxMinutes = value;
       else jobOverrides.maxCostUsd = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--total-minutes") {
+      const value = positiveNumber(args[index + 1], arg);
+      if (value instanceof Error) return value;
+      if (value > 1440) return new Error("--total-minutes must be at most 1440");
+      out.totalMinutes = value;
       index += 1;
       continue;
     }

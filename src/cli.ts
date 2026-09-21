@@ -15,8 +15,8 @@ const USAGE = `RalphWorks
 
 Usage:
   ralphworks init
-  ralphworks run <task-text|task-file|job.yaml> [--context PATH] [--runner dry-run|pi] [--executor host|docker|docker-clone] [--model provider/model] [--check COMMAND] [--max-iterations N] [--max-minutes N] [--max-cost-usd N] [--check-timeout N] [--commit none|verified] [--completion-promise VALUE] [--pass-env NAME] [--pi-agent-dir PATH]
-  ralphworks remote <task-file|job.yaml> [--repo owner/name] [--ref branch] [--resume-from RUN_ID]
+  ralphworks run <task-text|task-file|job.yaml> [--context PATH] [--runner dry-run|pi] [--executor host|docker|docker-clone] [--model provider/model] [--check COMMAND] [--max-iterations N] [--max-minutes N] [--total-minutes N] [--max-cost-usd N] [--check-timeout N] [--commit none|verified] [--completion-promise VALUE] [--pass-env NAME] [--pi-agent-dir PATH]
+  ralphworks remote <task-file|job.yaml> [--repo owner/name] [--ref branch] [--resume-from RUN_ID] [--total-minutes N]
   ralphworks status <run-dir>
   ralphworks trace <events.jsonl>
 
@@ -79,6 +79,7 @@ async function main(argv: string[]): Promise<number> {
           checks: runArgs.checks,
           contexts: runArgs.contexts,
           jobOverrides: runArgs.jobOverrides,
+          totalMinutes: runArgs.totalMinutes,
         });
         console.log(`RalphWorks docker ${result.status}`);
         console.log(`runner=${runArgs.runner}`);
@@ -101,6 +102,7 @@ async function main(argv: string[]): Promise<number> {
           checks: runArgs.checks,
           contexts: runArgs.contexts,
           jobOverrides: runArgs.jobOverrides,
+          totalMinutes: runArgs.totalMinutes,
         });
         console.log(`RalphWorks docker ${result.status}`);
         console.log(`runner=${runArgs.runner}`);
@@ -108,6 +110,10 @@ async function main(argv: string[]): Promise<number> {
         if (result.exitCode !== 0 && result.stdout) console.log(result.stdout.trimEnd());
         if (result.exitCode !== 0 && result.stderr) console.error(result.stderr.trimEnd());
         return result.exitCode === 0 ? 0 : 1;
+      }
+      if (runArgs.totalMinutes !== undefined) {
+        console.error("--total-minutes applies to Docker and remote execution; use --max-minutes for host runs");
+        return 1;
       }
       const interrupt = new AbortController();
       const onSigint = () => interrupt.abort("SIGINT");
@@ -164,7 +170,9 @@ async function main(argv: string[]): Promise<number> {
       }
       return 0;
     case "remote": {
-      const unsupported = rest.find((arg) => arg.startsWith("--") && arg !== "--repo" && arg !== "--ref" && arg !== "--resume-from");
+      const unsupported = rest.find(
+        (arg) => arg.startsWith("--") && arg !== "--repo" && arg !== "--ref" && arg !== "--resume-from" && arg !== "--total-minutes",
+      );
       if (unsupported) {
         console.error(`${unsupported} is not supported by remote; configure the pushed job and GitHub Actions variables instead`);
         return 1;
@@ -188,7 +196,7 @@ async function main(argv: string[]): Promise<number> {
         repo ??= inferred.repo;
         ref ??= inferred.ref;
       }
-      const result = await runRemoteJob({ repo, ref, jobPath: target, resumeRunId });
+      const result = await runRemoteJob({ repo, ref, jobPath: target, resumeRunId, totalMinutes: runArgs.totalMinutes });
       console.log(`RalphWorks remote ${result.status}`);
       console.log(`runUrl=${result.runUrl}`);
       console.log(`artifactDir=${result.artifactDir}`);

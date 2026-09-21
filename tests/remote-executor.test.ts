@@ -119,3 +119,46 @@ test("remote does not mislabel a task limit as an Actions infrastructure failure
   assert.equal(result.status, "max_iterations");
   assert.equal(result.reason, undefined);
 });
+
+test("remote cancels its workflow after the total deadline", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-remote-"));
+  const calls: Array<{ args: string[]; timeoutMs: number }> = [];
+  const result = await runRemoteJob({
+    repo: "acme/widgets",
+    ref: "main",
+    jobPath: "job.yaml",
+    cwd,
+    totalMinutes: 0.5,
+    command: async (args, timeoutMs) => {
+      calls.push({ args, timeoutMs });
+      if (args[0] === "workflow") return { exitCode: 0, stdout: "https://github.com/acme/widgets/actions/runs/123\n", stderr: "" };
+      if (args[1] === "watch") return { exitCode: 124, stdout: "", stderr: "", timedOut: true };
+      if (args[1] === "cancel") return { exitCode: 0, stdout: "", stderr: "" };
+      throw new Error(`unexpected gh call: ${args.join(" ")}`);
+    },
+  });
+  assert.equal(result.status, "timed_out");
+  assert.match(result.reason ?? "", /cancellation requested/);
+  assert.equal(calls[1].timeoutMs <= 30_000, true);
+  assert.deepEqual(calls[2].args.slice(0, 3), ["run", "cancel", "123"]);
+  assert.equal(calls[2].timeoutMs, 15_000);
+});
+
+test("remote reports a timed-out artifact download", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-remote-"));
+  const result = await runRemoteJob({
+    repo: "acme/widgets",
+    ref: "main",
+    jobPath: "job.yaml",
+    cwd,
+    totalMinutes: 0.5,
+    command: async (args) => {
+      if (args[0] === "workflow") return { exitCode: 0, stdout: "https://github.com/acme/widgets/actions/runs/123\n", stderr: "" };
+      if (args[1] === "watch") return { exitCode: 0, stdout: "", stderr: "" };
+      if (args[1] === "download") return { exitCode: 124, stdout: "", stderr: "", timedOut: true };
+      throw new Error(`unexpected gh call: ${args.join(" ")}`);
+    },
+  });
+  assert.equal(result.status, "timed_out");
+  assert.match(result.reason ?? "", /result download exceeded/);
+});

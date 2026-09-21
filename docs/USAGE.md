@@ -8,7 +8,7 @@ RalphWorks requires Node.js 24. Install the release package and configure Pi:
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.4/ralphworks-0.1.4.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.5/ralphworks-0.1.5.tgz
 pi # configure /login and /model, then exit
 ralphworks --help
 ```
@@ -144,6 +144,8 @@ The parser supports a deliberately small YAML subset: top-level scalar fields, a
 
 CLI options override the matching job values: `--max-iterations`, `--max-minutes`, `--max-cost-usd`, `--check-timeout`, `--commit`, `--completion-promise`, repeatable `--check`, and repeatable `--context`. CLI options suit one-off work; YAML suits reviewed and reusable jobs.
 
+Docker and remote commands also accept `--total-minutes N` (default: 120, maximum: 1440). This bounds the whole Docker command, including clone and dependency installation, or the remote dispatch, wait, and artifact download. It is separate from `--max-minutes`, which bounds the agent loop. A timed-out Docker command attempts to force-remove its container; a timed-out remote wait requests cancellation of the Actions run. Check the run URL if cancellation fails or is still in progress. Host runs use `--max-minutes` and reject `--total-minutes`.
+
 ## Iteration and terminal states
 
 Each iteration creates a new Pi session and supplies the task plus a bounded view of durable progress from earlier iterations. The full progress history stays on disk. For tasks with several items, the agent chooses the highest-priority unfinished item. After the agent returns, RalphWorks records model events and cost, runs every configured check, updates progress, and decides whether to continue. Failed check output is included in the next iteration's progress, capped at 2,000 characters per failed check.
@@ -194,6 +196,19 @@ Host and Docker mount runs store state under `.ralph/`:
 
 `current` points to the latest run. Default progress paths include a hash of the complete task and supplied context: rerunning the same task reuses progress, while changed tasks start fresh. An explicit `progress_file` keeps its chosen path. The lock prevents concurrent runs in one worktree. `ralphworks init` adds `.ralph/` to `.gitignore`.
 
+## Recovering an interrupted local run
+
+Inspect the last result and the worktree before restarting:
+
+```bash
+ralphworks status .ralph/current
+git status --short
+git diff --check
+git diff
+```
+
+RalphWorks leaves edits in place after a failure or interruption. If `commit: verified` is enabled, a dirty worktree blocks a new run so unchecked edits cannot be committed automatically. On the same dedicated branch, review the changed files, run the relevant project checks, then commit only the files you have verified. You can instead discard the edits after reviewing them. Rerun the same task and options once the worktree is clean; its default progress file is reused when the task and context are unchanged. Do not delete a lock held by a live run; a stale lock is reclaimed automatically when its owner is gone.
+
 ## Docker execution
 
 Build the current image from the RalphWorks repository:
@@ -229,6 +244,8 @@ ralphworks run ralphworks.yaml \
 
 The container exports `change.patch`, `result.json`, and `events.jsonl` to `.ralph/exports/<run-id>/` before it exits. It never applies the patch to the local repository.
 
+For a long clone or dependency installation, set a larger outer deadline, for example `--total-minutes 180`. The default agent loop limit still applies separately. If the outer deadline expires, the container is stopped and the export may be incomplete.
+
 ## GitHub Actions execution
 
 The `remote` command dispatches GitHub Actions. YAML `mode: remote` is rejected at load time.
@@ -241,14 +258,15 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.4` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.5` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
 ```bash
 ralphworks remote ralphworks.yaml \
   --repo owner/repo \
-  --ref ralph/task-branch
+  --ref ralph/task-branch \
+  --total-minutes 120
 ```
 
 The CLI dispatches the workflow, waits for it, and downloads artifacts under `.ralph/remote/<github-run-id>/`. The workflow checks out the target branch, builds RalphWorks, installs project dependencies, runs the host executor, and uploads the patch, run records, and default progress file. Its `contents: read` permission prevents code pushes.

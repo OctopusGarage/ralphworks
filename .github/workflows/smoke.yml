@@ -24,3 +24,4 @@ jobs:
       - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host
       - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker
       - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker-clone
+      - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker-timeout

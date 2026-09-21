@@ -1,28 +1,17 @@
-import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
 
+import { type RunCommand, runDockerContainer } from "./docker-command.ts";
 import { checksEnv, jobOptionsEnv, modelEnv, piAgentEnv, piAgentMount, providerEnv } from "./docker-env.ts";
 import type { JobOverrides, ModelRef } from "./run-args.ts";
 
-const execFileAsync = promisify(execFile);
-
 export type DockerCloneResult = {
-  status: "completed" | "failed";
+  status: "completed" | "failed" | "timed_out";
   exitCode: number;
   stdout: string;
   stderr: string;
   outputDir: string;
 };
-
-type CommandResult = {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-};
-
-type RunCommand = (file: string, args: string[]) => Promise<CommandResult>;
 
 export type DockerCloneOptions = {
   jobPath: string;
@@ -39,15 +28,15 @@ export type DockerCloneOptions = {
   image?: string;
   runCommand?: RunCommand;
   outputDir?: string;
+  totalMinutes?: number;
 };
 
 export async function runDockerCloneJob(options: DockerCloneOptions): Promise<DockerCloneResult> {
-  const runCommand = options.runCommand ?? defaultRunCommand;
   const outputDir = options.outputDir ?? join(process.cwd(), ".ralph", "exports", `${Date.now()}-${process.pid}`);
   await mkdir(outputDir, { recursive: true });
-  const result = await runCommand("docker", dockerCloneArgs(options, outputDir));
+  const result = await runDockerContainer(dockerCloneArgs(options, outputDir), options.totalMinutes, options.runCommand);
   return {
-    status: result.exitCode === 0 ? "completed" : "failed",
+    status: result.timedOut ? "timed_out" : result.exitCode === 0 ? "completed" : "failed",
     ...result,
     outputDir,
   };
@@ -124,32 +113,4 @@ function dockerCloneScript(): string {
     'exit "$RALPH_EXIT"',
     "RALPHWORKS_SCRIPT",
   ].join("\n");
-}
-
-async function defaultRunCommand(file: string, args: string[]): Promise<CommandResult> {
-  try {
-    const { stdout, stderr } = await execFileAsync(file, args, { maxBuffer: 1024 * 1024 * 10 });
-    return { exitCode: 0, stdout, stderr };
-  } catch (error) {
-    return {
-      exitCode: exitCode(error),
-      stdout: output(error, "stdout"),
-      stderr: output(error, "stderr"),
-    };
-  }
-}
-
-function exitCode(error: unknown): number {
-  if (typeof error === "object" && error !== null && "code" in error && typeof error.code === "number") {
-    return error.code;
-  }
-  return 1;
-}
-
-function output(error: unknown, key: "stdout" | "stderr"): string {
-  if (typeof error !== "object" || error === null || !(key in error)) {
-    return "";
-  }
-  const value = (error as Record<"stdout" | "stderr", unknown>)[key];
-  return typeof value === "string" ? value : "";
 }

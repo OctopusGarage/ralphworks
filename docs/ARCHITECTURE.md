@@ -70,6 +70,8 @@ Checks run after the agent step. When no checks are configured, the check set is
 
 Every run defaults to a 30-minute wall-clock limit unless the job or CLI supplies a value. Unattended Docker and GitHub Actions runs also default to $3. CLI Pi iterations run in a child process; at the deadline or on a local interrupt, RalphWorks terminates its process group before releasing the lock. Active checks are stopped in the same way. Custom in-process runners must honor abort signals. Cost is known after Pi reports the iteration, so a single iteration can cross the configured ceiling.
 
+The Docker and remote adapters have a separate 120-minute default outer deadline for setup, agent execution, and result delivery. `--total-minutes` overrides it. A timed-out Docker adapter attempts to force-remove its named container. A timed-out remote wait requests cancellation of its Actions run and returns the run URL for follow-up.
+
 ## Git ownership
 
 RalphWorks owns commits when `commit: verified` is enabled:

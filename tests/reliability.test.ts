@@ -167,6 +167,46 @@ test("host runs have a default wall clock limit", async () => {
   assert.equal(limit, 30);
 });
 
+test("verified runs resume after an interrupted worktree is reviewed and committed", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
+  await execFileAsync("git", ["-C", cwd, "init", "-q"]);
+  await execFileAsync("git", ["-C", cwd, "config", "user.name", "RalphWorks Test"]);
+  await execFileAsync("git", ["-C", cwd, "config", "user.email", "test@example.invalid"]);
+  await writeFile(join(cwd, ".gitignore"), ".ralph/\n");
+  await execFileAsync("git", ["-C", cwd, "add", ".gitignore", "job.yaml"]);
+  await execFileAsync("git", ["-C", cwd, "commit", "-qm", "test: initial task"]);
+  await writeFile(join(cwd, "interrupted.txt"), "review me\n");
+
+  const blocked = await runLocalJob(jobPath, {
+    cwd,
+    checksOverride: ["test -f final.txt"],
+    jobOverrides: { commit: "verified" },
+    runner: {
+      async runIteration() {
+        throw new Error("runner must not start on a dirty worktree");
+      },
+    },
+  });
+  assert.equal(blocked.status, "blocked");
+  await execFileAsync("git", ["-C", cwd, "add", "interrupted.txt"]);
+  await execFileAsync("git", ["-C", cwd, "commit", "-qm", "test: review interrupted work"]);
+
+  const resumed = await runLocalJob(jobPath, {
+    cwd,
+    checksOverride: ["test -f final.txt"],
+    jobOverrides: { commit: "verified" },
+    runner: {
+      async runIteration() {
+        await writeFile(join(cwd, "final.txt"), "done\n");
+        return { status: "continue", summary: "finished", output: "<promise>DONE</promise>" };
+      },
+    },
+  });
+  assert.equal(resumed.status, "completed");
+  assert.equal(resumed.commits.length, 1);
+  assert.equal((await execFileAsync("git", ["-C", cwd, "status", "--porcelain"])).stdout.trim(), "");
+});
+
 test("interrupting an iteration records cancellation and releases the lock", async () => {
   const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
   const interrupt = new AbortController();

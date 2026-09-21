@@ -23,7 +23,7 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(action, /ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
   assert.match(action, /ZAI_CODING_CN_API_KEY/);
   assert.match(action, /RALPHWORKS_AUTH_SECRET_VALUE: \$\{\{ secrets\[vars\.RALPHWORKS_AUTH_SECRET\] \}\}/);
-  assert.match(action, /RALPHWORKS_REF: \$\{\{ vars\.RALPHWORKS_REF \|\| 'v0\.1\.4' \}\}/);
+  assert.match(action, /RALPHWORKS_REF: \$\{\{ vars\.RALPHWORKS_REF \|\| 'v0\.1\.5' \}\}/);
   assert.match(action, /resume_run_id:/);
   assert.match(action, /actions: read/);
   assert.match(action, /gh run download "\$RALPH_RESUME_RUN"/);

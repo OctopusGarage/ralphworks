@@ -91,6 +91,14 @@ test("CLI run rejects unknown runners", async () => {
   );
 });
 
+test("CLI host run directs total deadline users to the loop limit", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
+  await assert.rejects(execFileAsync("node", [CLI, "run", "do work", "--total-minutes", "5"], { cwd: workspace }), (error: unknown) => {
+    assert.match(String((error as { stderr?: string }).stderr), /use --max-minutes for host runs/);
+    return true;
+  });
+});
+
 test("CLI remote rejects local-only flags before dispatch", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
   await assert.rejects(
