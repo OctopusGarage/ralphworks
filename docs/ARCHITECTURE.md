@@ -36,6 +36,7 @@ flowchart LR
 | `docker-env.ts` | Transfers only selected model, Pi, check, context, override, and provider environment settings. |
 | `remote-executor.ts` | Dispatches GitHub Actions, correlates the run, waits for completion, and downloads artifacts. |
 | `init.ts`, `*-workflow.ts` | Generate the manual and issue/PR workflows without overwriting existing files; ignore local RalphWorks state. |
+| `workflow-execution.ts` | Shares the identical RalphWorks checkout/build steps and provider credential environment across scenario workflow templates. |
 | `status.ts`, `trace.ts` | Read compact summaries from structured result and event files. |
 
 ## Core state machine

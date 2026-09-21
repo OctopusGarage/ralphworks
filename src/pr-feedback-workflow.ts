@@ -1,3 +1,5 @@
+import { PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+
 export const PR_FEEDBACK_WORKFLOW = [
   "name: RalphWorks PR Feedback",
   "",
@@ -56,11 +58,7 @@ export const PR_FEEDBACK_WORKFLOW = [
   "          SOURCE_TOKEN: ${{ secrets.RALPHWORKS_REPO_TOKEN }}",
   "        run: |",
   "          set -euo pipefail",
-  '          if [ -n "$SOURCE_TOKEN" ]; then GH_TOKEN="$SOURCE_TOKEN" gh repo clone "$RALPHWORKS_SOURCE_REPO" "$RUNNER_TEMP/ralphworks"',
-  '          else git clone "https://github.com/${RALPHWORKS_SOURCE_REPO}.git" "$RUNNER_TEMP/ralphworks"; fi',
-  '          git -C "$RUNNER_TEMP/ralphworks" checkout --detach "$RALPHWORKS_REF"',
-  '          pnpm --dir "$RUNNER_TEMP/ralphworks" install --frozen-lockfile',
-  '          pnpm --dir "$RUNNER_TEMP/ralphworks" build',
+  ...RALPHWORKS_CHECKOUT_AND_BUILD,
   "          if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile",
   "          elif [ -f package-lock.json ]; then npm ci",
   "          elif [ -f yarn.lock ]; then yarn install --frozen-lockfile",
@@ -72,12 +70,7 @@ export const PR_FEEDBACK_WORKFLOW = [
   "      - name: Run RalphWorks",
   "        id: ralph",
   "        env:",
-  "          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
-  "          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}",
-  "          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}",
-  "          ZAI_CODING_CN_API_KEY: ${{ secrets.ZAI_CODING_CN_API_KEY }}",
-  "          RALPHWORKS_AUTH_SECRET_NAME: ${{ vars.RALPHWORKS_AUTH_SECRET }}",
-  "          RALPHWORKS_AUTH_SECRET_VALUE: ${{ secrets[vars.RALPHWORKS_AUTH_SECRET] }}",
+  ...PROVIDER_CREDENTIAL_ENV,
   "        run: |",
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"; fi',
