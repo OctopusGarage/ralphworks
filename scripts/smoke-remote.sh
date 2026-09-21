@@ -2,6 +2,7 @@
 set -euo pipefail
 
 target_repo="${RALPHWORKS_SMOKE_TARGET_REPO:?Set RALPHWORKS_SMOKE_TARGET_REPO to a configured GitHub repository}"
+[[ "$target_repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || { echo "Invalid target repository" >&2; exit 2; }
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 smoke_dir="$(mktemp -d "${TMPDIR:-/tmp}/ralphworks-remote-smoke.XXXXXX")"
 smoke_branch="ralphworks/smoke-$(date +%s)-$$"
@@ -16,7 +17,7 @@ cleanup() {
 trap cleanup EXIT
 
 pnpm --dir "$repo_root" build >/dev/null
-gh repo clone "$target_repo" "$smoke_dir/repo" -- --depth 1 >/dev/null
+GIT_TERMINAL_PROMPT=0 git -c credential.helper='!gh auth git-credential' clone --depth 1 "https://github.com/$target_repo.git" "$smoke_dir/repo" >/dev/null
 test -f "$smoke_dir/repo/.github/workflows/ralphworks.yml" || { echo "Target repository has no RalphWorks workflow" >&2; exit 1; }
 git -C "$smoke_dir/repo" switch -q -c "$smoke_branch"
 git -C "$smoke_dir/repo" config user.name 'RalphWorks Smoke'

@@ -34,6 +34,8 @@ test("runDockerCloneJob runs a container that clones the target GitHub repo", as
   assert.equal(calls[0].file, "docker");
   assert.deepEqual(calls[0].args.slice(0, 2), ["run", "--rm"]);
   assert.ok(calls[0].args.includes("--entrypoint"));
+  assert.ok(calls[0].args.includes("--user"));
+  assert.ok(calls[0].args.includes("root"));
   assert.ok(calls[0].args.includes("bash"));
   assert.equal(calls[0].args.at(-2), "-c");
   assert.ok(calls[0].args.includes("RALPH_REPO=acme/widgets"));
@@ -55,6 +57,9 @@ test("runDockerCloneJob runs a container that clones the target GitHub repo", as
   assert.match(calls[0].args.at(-1) ?? "", /https:\/\/github.com\/\$RALPH_REPO\.git/);
   assert.match(calls[0].args.at(-1) ?? "", /gh repo clone "\$RALPH_REPO"/);
   assert.match(calls[0].args.at(-1) ?? "", /unset GH_TOKEN/);
+  assert.match(calls[0].args.at(-1) ?? "", /OUTPUT_UID=\$\(stat -c %u \/output\)/);
+  assert.match(calls[0].args.at(-1) ?? "", /usermod --non-unique --uid "\$OUTPUT_UID" agent/);
+  assert.match(calls[0].args.at(-1) ?? "", /su agent -s \/bin\/bash <<'RALPHWORKS_SCRIPT'/);
   assert.match(calls[0].args.at(-1) ?? "", /git config user\.name/);
   assert.match(calls[0].args.at(-1) ?? "", /git config user\.email/);
   assert.match(calls[0].args.at(-1) ?? "", /npm ci/);

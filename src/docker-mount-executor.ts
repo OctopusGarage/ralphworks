@@ -91,6 +91,8 @@ function linkedWorktreeGitMount(cwd: string): string[] {
 function dockerMountScript(): string {
   return [
     "set -euo pipefail",
+    "WORKSPACE_UID=$(stat -c %u /workspace)",
+    'if [ "$WORKSPACE_UID" -ne 0 ] && [ "$WORKSPACE_UID" -ne "$(id -u agent)" ]; then usermod --non-unique --uid "$WORKSPACE_UID" agent; fi',
     "chown agent:node /workspace/node_modules",
     "su agent -s /bin/bash -c '",
     "set -euo pipefail",

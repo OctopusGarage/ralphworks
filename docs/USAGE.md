@@ -182,7 +182,7 @@ ralphworks run ralphworks.yaml \
   --pi-agent-dir ~/.pi/agent
 ```
 
-The Pi directory is mounted into the container. Provider secrets are forwarded by environment variable name, which keeps values out of Docker command arguments. The container configures `ralphworks[bot]` as a default Git author; repository-local Git configuration can override it.
+The Pi directory is mounted into the container. Provider secrets are forwarded by environment variable name, which keeps values out of Docker command arguments. On Linux, the container maps its agent UID to the worktree owner so it can write without changing host file ownership. The container configures `ralphworks[bot]` as a default Git author; repository-local Git configuration can override it.
 
 ### Clone a clean branch
 
@@ -210,7 +210,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.1` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.2` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 

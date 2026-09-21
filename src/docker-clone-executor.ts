@@ -59,6 +59,8 @@ function dockerCloneArgs(options: DockerCloneOptions, outputDir: string): string
     "--rm",
     "--entrypoint",
     "bash",
+    "--user",
+    "root",
     "-v",
     `${outputDir}:/output`,
     ...piAgentMount(options.piAgentDir),
@@ -86,6 +88,10 @@ function dockerCloneArgs(options: DockerCloneOptions, outputDir: string): string
 
 function dockerCloneScript(): string {
   return [
+    "set -euo pipefail",
+    "OUTPUT_UID=$(stat -c %u /output)",
+    'if [ "$OUTPUT_UID" -ne 0 ] && [ "$OUTPUT_UID" -ne "$(id -u agent)" ]; then usermod --non-unique --uid "$OUTPUT_UID" agent; fi',
+    "su agent -s /bin/bash <<'RALPHWORKS_SCRIPT'",
     "set -euo pipefail",
     "rm -rf /home/agent/workspace",
     'if [ -n "${GH_TOKEN:-}" ]; then',
@@ -116,6 +122,7 @@ function dockerCloneScript(): string {
     'git diff --binary "$RALPH_BASE" -- . ":!.ralph" > /output/change.patch',
     'if [ -f .ralph/current ]; then RALPH_RUN_DIR=$(cat .ralph/current); case "$RALPH_RUN_DIR" in /*) ;; *) RALPH_RUN_DIR=".ralph/$RALPH_RUN_DIR";; esac; cp "$RALPH_RUN_DIR/result.json" /output/result.json; cp "$RALPH_RUN_DIR/events.jsonl" /output/events.jsonl; fi',
     'exit "$RALPH_EXIT"',
+    "RALPHWORKS_SCRIPT",
   ].join("\n");
 }
 
