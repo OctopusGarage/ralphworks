@@ -3,23 +3,17 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-
-import { runLocalJob } from "../src/orchestrator.ts";
 import { parseJob } from "../src/job.ts";
+import { runLocalJob } from "../src/orchestrator.ts";
 
 test("runLocalJob creates Ralph state and records dry-run iterations", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
   const jobPath = join(workspace, "job.yaml");
   await writeFile(
     jobPath,
-    [
-      "name: test-job",
-      "task: Implement the next small task.",
-      "completion_promise: DONE",
-      "max_iterations: 2",
-      "mode: local",
-      "",
-    ].join("\n"),
+    ["name: test-job", "task: Implement the next small task.", "completion_promise: DONE", "max_iterations: 2", "mode: local", ""].join(
+      "\n",
+    ),
     "utf8",
   );
 
@@ -51,14 +45,7 @@ test("runLocalJob persists runner events between iteration boundaries", async ()
   const jobPath = join(workspace, "job.yaml");
   await writeFile(
     jobPath,
-    [
-      "name: event-job",
-      "task: Record runner events.",
-      "completion_promise: DONE",
-      "max_iterations: 1",
-      "mode: local",
-      "",
-    ].join("\n"),
+    ["name: event-job", "task: Record runner events.", "completion_promise: DONE", "max_iterations: 1", "mode: local", ""].join("\n"),
     "utf8",
   );
 
@@ -196,7 +183,12 @@ test("runLocalJob appends context files and directories and applies CLI override
     cwd: workspace,
     contexts: ["spec.md", "context"],
     jobOverrides: { maxIterations: 1, completionPromise: "FINISHED" },
-    runner: { async runIteration(input) { task = input.job.task; return { status: "continue", summary: "done", output: "<promise>FINISHED</promise>" }; } },
+    runner: {
+      async runIteration(input) {
+        task = input.job.task;
+        return { status: "continue", summary: "done", output: "<promise>FINISHED</promise>" };
+      },
+    },
   });
   assert.equal(result.status, "completed");
   assert.match(task, /Required behavior/);
@@ -209,15 +201,27 @@ test("different context produces separate default progress", async () => {
   await writeFile(context, "first version");
   let firstProgress = "";
   await runLocalJob("Build from context", {
-    cwd: workspace, contexts: [context],
-    runner: { async runIteration(input) { firstProgress = input.job.progressFile; return { status: "continue", summary: "one" }; } },
+    cwd: workspace,
+    contexts: [context],
+    runner: {
+      async runIteration(input) {
+        firstProgress = input.job.progressFile;
+        return { status: "continue", summary: "one" };
+      },
+    },
     jobOverrides: { maxIterations: 1 },
   });
   await writeFile(context, "second version");
   let secondProgress = "";
   await runLocalJob("Build from context", {
-    cwd: workspace, contexts: [context],
-    runner: { async runIteration(input) { secondProgress = input.job.progressFile; return { status: "continue", summary: "two" }; } },
+    cwd: workspace,
+    contexts: [context],
+    runner: {
+      async runIteration(input) {
+        secondProgress = input.job.progressFile;
+        return { status: "continue", summary: "two" };
+      },
+    },
     jobOverrides: { maxIterations: 1 },
   });
   assert.notEqual(firstProgress, secondProgress);
@@ -235,7 +239,7 @@ test("runLocalJob keeps iterating when the completion promise is emitted but che
       "max_iterations: 2",
       "mode: local",
       "checks:",
-      "  - node -e \"process.exit(7)\"",
+      '  - node -e "process.exit(7)"',
       "",
     ].join("\n"),
     "utf8",

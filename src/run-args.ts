@@ -1,5 +1,5 @@
-export type RunnerName = "dry-run" | "pi";
-export type ExecutorName = "host" | "docker" | "docker-clone";
+type RunnerName = "dry-run" | "pi";
+type ExecutorName = "host" | "docker" | "docker-clone";
 export type ModelRef = {
   provider: string;
   id: string;
@@ -142,33 +142,45 @@ export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunA
     if (arg === "--context") {
       const value = args[index + 1];
       if (!value) return new Error("--context requires a path");
-      contexts.push(value); index += 1; continue;
+      contexts.push(value);
+      index += 1;
+      continue;
     }
     if (arg === "--max-iterations") {
       const value = positiveInteger(args[index + 1], "--max-iterations");
       if (value instanceof Error) return value;
-      jobOverrides.maxIterations = value; index += 1; continue;
+      jobOverrides.maxIterations = value;
+      index += 1;
+      continue;
     }
     if (arg === "--max-minutes" || arg === "--max-cost-usd") {
       const value = nonNegativeNumber(args[index + 1], arg);
       if (value instanceof Error) return value;
-      if (arg === "--max-minutes") jobOverrides.maxMinutes = value; else jobOverrides.maxCostUsd = value;
-      index += 1; continue;
+      if (arg === "--max-minutes") jobOverrides.maxMinutes = value;
+      else jobOverrides.maxCostUsd = value;
+      index += 1;
+      continue;
     }
     if (arg === "--check-timeout") {
       const value = positiveNumber(args[index + 1], "--check-timeout");
       if (value instanceof Error) return value;
-      jobOverrides.checkTimeoutSeconds = value; index += 1; continue;
+      jobOverrides.checkTimeoutSeconds = value;
+      index += 1;
+      continue;
     }
     if (arg === "--commit") {
       const value = args[index + 1];
       if (value !== "none" && value !== "verified") return new Error("--commit must be none or verified");
-      jobOverrides.commit = value; index += 1; continue;
+      jobOverrides.commit = value;
+      index += 1;
+      continue;
     }
     if (arg === "--completion-promise") {
       const value = args[index + 1];
       if (!value) return new Error("--completion-promise requires a value");
-      jobOverrides.completionPromise = value; index += 1; continue;
+      jobOverrides.completionPromise = value;
+      index += 1;
+      continue;
     }
     if (arg === "--pi-agent-dir") {
       const value = args[index + 1];
@@ -226,16 +238,24 @@ function jsonStringArray(value: string | undefined, name: string): string[] | Er
   if (!value) return [];
   try {
     const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string" && item) ? parsed : new Error(`${name} must be a JSON array of strings`);
-  } catch { return new Error(`${name} must be a JSON array of strings`); }
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string" && item)
+      ? parsed
+      : new Error(`${name} must be a JSON array of strings`);
+  } catch {
+    return new Error(`${name} must be a JSON array of strings`);
+  }
 }
 
 function jsonJobOverrides(value: string | undefined): JobOverrides | Error {
   if (!value) return {};
   try {
     const parsed: unknown = JSON.parse(value);
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) ? parsed as JobOverrides : new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
-  } catch { return new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object"); }
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as JobOverrides)
+      : new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
+  } catch {
+    return new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
+  }
 }
 
 function splitEnvList(value: string | undefined): string[] {

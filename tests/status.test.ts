@@ -78,11 +78,17 @@ test("readRunStatus resolves a relative pointer from the state directory", async
 
 test("readRunStatus exposes a bounded failure summary", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-status-"));
-  await writeFile(join(workspace, "result.json"), JSON.stringify({
-    jobName: "failed-job", status: "max_iterations", iterations: 3,
-    runDir: workspace, reason: "iteration limit reached",
-    checks: [{ command: "pnpm test", exitCode: 1, stderr: "assertion failed" }],
-  }));
+  await writeFile(
+    join(workspace, "result.json"),
+    JSON.stringify({
+      jobName: "failed-job",
+      status: "max_iterations",
+      iterations: 3,
+      runDir: workspace,
+      reason: "iteration limit reached",
+      checks: [{ command: "pnpm test", exitCode: 1, stderr: "assertion failed" }],
+    }),
+  );
   const status = await readRunStatus(workspace);
   assert.equal(status.reason, "iteration limit reached");
   assert.deepEqual(status.failedCheck, { command: "pnpm test", exitCode: 1, detail: "assertion failed" });

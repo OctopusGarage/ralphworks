@@ -21,7 +21,7 @@ type CommandResult = {
   stderr: string;
 };
 
-export type RunCommand = (file: string, args: string[]) => Promise<CommandResult>;
+type RunCommand = (file: string, args: string[]) => Promise<CommandResult>;
 
 export type DockerMountOptions = {
   cwd: string;

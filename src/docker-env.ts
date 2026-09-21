@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import type { JobOverrides, ModelRef } from "./run-args.ts";
 
-export const PROVIDER_ENV_VARS = [
+const PROVIDER_ENV_VARS = [
   "ANTHROPIC_API_KEY",
   "ANT_LING_API_KEY",
   "AZURE_OPENAI_API_KEY",
@@ -52,7 +52,7 @@ export const PROVIDER_ENV_VARS = [
   "GOOGLE_CLOUD_LOCATION",
 ] as const;
 
-export const CONTAINER_PI_AGENT_DIR = "/home/agent/.pi/agent";
+const CONTAINER_PI_AGENT_DIR = "/home/agent/.pi/agent";
 
 export function modelEnv(modelRef: ModelRef | undefined): string[] {
   if (!modelRef) {
@@ -91,7 +91,7 @@ export function piAgentMount(piAgentDir: string | undefined): string[] {
   return ["-v", `${expandHome(piAgentDir)}:${CONTAINER_PI_AGENT_DIR}`];
 }
 
-export function expandHome(path: string): string {
+function expandHome(path: string): string {
   if (path === "~") {
     return homedir();
   }

@@ -1,5 +1,5 @@
-import { PiSdkRunner } from "./pi-runner.ts";
 import type { RalphJob } from "./job.ts";
+import { PiSdkRunner } from "./pi-runner.ts";
 import type { ModelRef } from "./run-args.ts";
 
 type WorkerInput = {

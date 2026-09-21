@@ -110,12 +110,37 @@ test("parseRunArgs accepts a Pi agent directory", () => {
 });
 
 test("parseRunArgs accepts contexts and job overrides", () => {
-  assert.deepEqual(parseRunArgs([
-    "--context", "spec.md", "--context", "docs/api",
-    "--max-iterations", "8", "--max-minutes", "30", "--max-cost-usd", "4.5",
-    "--check-timeout", "120", "--commit", "verified", "--completion-promise", "FINISHED",
-  ]), {
-    runner: "pi", executor: "host", contexts: ["spec.md", "docs/api"],
-    jobOverrides: { maxIterations: 8, maxMinutes: 30, maxCostUsd: 4.5, checkTimeoutSeconds: 120, commit: "verified", completionPromise: "FINISHED" },
-  });
+  assert.deepEqual(
+    parseRunArgs([
+      "--context",
+      "spec.md",
+      "--context",
+      "docs/api",
+      "--max-iterations",
+      "8",
+      "--max-minutes",
+      "30",
+      "--max-cost-usd",
+      "4.5",
+      "--check-timeout",
+      "120",
+      "--commit",
+      "verified",
+      "--completion-promise",
+      "FINISHED",
+    ]),
+    {
+      runner: "pi",
+      executor: "host",
+      contexts: ["spec.md", "docs/api"],
+      jobOverrides: {
+        maxIterations: 8,
+        maxMinutes: 30,
+        maxCostUsd: 4.5,
+        checkTimeoutSeconds: 120,
+        commit: "verified",
+        completionPromise: "FINISHED",
+      },
+    },
+  );
 });

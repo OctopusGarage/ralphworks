@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mkdtemp } from "node:fs/promises";
 import test from "node:test";
 
 import { withRunLock } from "../src/run-lock.ts";
@@ -15,7 +14,10 @@ test("an old heartbeat cannot reclaim a lock held by a live process", async () =
   await writeFile(owner, `${process.pid}:active`);
   const old = new Date(Date.now() - 120_000);
   await utimes(owner, old, old);
-  await assert.rejects(withRunLock(cwd, async () => "unexpected"), /locked by another/);
+  await assert.rejects(
+    withRunLock(cwd, async () => "unexpected"),
+    /locked by another/,
+  );
   assert.equal(await readFile(owner, "utf8"), `${process.pid}:active`);
 });
 

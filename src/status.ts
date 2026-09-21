@@ -37,11 +37,15 @@ export async function readRunStatus(target: string): Promise<RunStatusSummary> {
     runDir,
     ...(raw.reason ? { reason: raw.reason } : {}),
     ...(raw.lastSummary ? { lastSummary: raw.lastSummary } : {}),
-    ...(failedCheck ? { failedCheck: {
-      command: failedCheck.command,
-      exitCode: failedCheck.exitCode,
-      detail: (failedCheck.stderr || failedCheck.stdout || "").trim().slice(-1000),
-    } } : {}),
+    ...(failedCheck
+      ? {
+          failedCheck: {
+            command: failedCheck.command,
+            exitCode: failedCheck.exitCode,
+            detail: (failedCheck.stderr || failedCheck.stdout || "").trim().slice(-1000),
+          },
+        }
+      : {}),
     checks: {
       total: checks.length,
       failed: checks.filter((check) => check.exitCode !== 0).length,

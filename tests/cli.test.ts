@@ -29,13 +29,16 @@ test("CLI run accepts an explicit dry-run runner", async () => {
   const jobPath = join(workspace, "job.yaml");
   await writeJob(jobPath);
 
-  await assert.rejects(execFileAsync("node", [CLI, "run", jobPath, "--runner", "dry-run"], {
-    cwd: workspace,
-  }), (error: unknown) => {
-    assert.match(String((error as { stdout?: string }).stdout), /RalphWorks run max_iterations: cli-job/);
-    assert.match(String((error as { stdout?: string }).stdout), /runner=dry-run/);
-    return true;
-  });
+  await assert.rejects(
+    execFileAsync("node", [CLI, "run", jobPath, "--runner", "dry-run"], {
+      cwd: workspace,
+    }),
+    (error: unknown) => {
+      assert.match(String((error as { stdout?: string }).stdout), /RalphWorks run max_iterations: cli-job/);
+      assert.match(String((error as { stdout?: string }).stdout), /runner=dry-run/);
+      return true;
+    },
+  );
 });
 
 test("CLI run rejects unknown runners", async () => {
@@ -102,15 +105,18 @@ test("CLI run accepts the host executor explicitly", async () => {
   const jobPath = join(workspace, "job.yaml");
   await writeJob(jobPath);
 
-  await assert.rejects(execFileAsync("node", [CLI, "run", jobPath, "--runner", "dry-run", "--executor", "host"], {
-    cwd: workspace,
-  }), (error: unknown) => {
-    const stdout = String((error as { stdout?: string }).stdout);
-    assert.match(stdout, /RalphWorks run max_iterations: cli-job/);
-    assert.match(stdout, /runner=dry-run/);
-    assert.match(stdout, /executor=host/);
-    return true;
-  });
+  await assert.rejects(
+    execFileAsync("node", [CLI, "run", jobPath, "--runner", "dry-run", "--executor", "host"], {
+      cwd: workspace,
+    }),
+    (error: unknown) => {
+      const stdout = String((error as { stdout?: string }).stdout);
+      assert.match(stdout, /RalphWorks run max_iterations: cli-job/);
+      assert.match(stdout, /runner=dry-run/);
+      assert.match(stdout, /executor=host/);
+      return true;
+    },
+  );
 });
 
 test("CLI status prints a compact run summary", async () => {
@@ -147,11 +153,17 @@ test("CLI status prints a compact run summary", async () => {
 
 test("CLI status prints the reason and failed check", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
-  await writeFile(join(workspace, "result.json"), JSON.stringify({
-    jobName: "failed-job", status: "max_iterations", iterations: 3,
-    runDir: workspace, reason: "iteration limit reached",
-    checks: [{ command: "pnpm test", exitCode: 1, stderr: "assertion failed" }],
-  }));
+  await writeFile(
+    join(workspace, "result.json"),
+    JSON.stringify({
+      jobName: "failed-job",
+      status: "max_iterations",
+      iterations: 3,
+      runDir: workspace,
+      reason: "iteration limit reached",
+      checks: [{ command: "pnpm test", exitCode: 1, stderr: "assertion failed" }],
+    }),
+  );
   const { stdout } = await execFileAsync("node", [CLI, "status", workspace], { cwd: workspace });
   assert.match(stdout, /reason=iteration limit reached/);
   assert.match(stdout, /failedCheck=pnpm test \(exit 1\)/);
@@ -219,14 +231,9 @@ test("CLI trace formats missing events file errors", async () => {
 async function writeJob(path: string): Promise<void> {
   await writeFile(
     path,
-    [
-      "name: cli-job",
-      "task: Exercise the CLI runner option.",
-      "completion_promise: DONE",
-      "max_iterations: 1",
-      "mode: local",
-      "",
-    ].join("\n"),
+    ["name: cli-job", "task: Exercise the CLI runner option.", "completion_promise: DONE", "max_iterations: 1", "mode: local", ""].join(
+      "\n",
+    ),
     "utf8",
   );
 }

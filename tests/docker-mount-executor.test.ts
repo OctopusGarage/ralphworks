@@ -62,10 +62,17 @@ test("runDockerMountJob exposes linked worktree Git metadata to the container", 
   execFileSync("git", ["-C", source, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "--allow-empty", "-m", "init"]);
   execFileSync("git", ["-C", source, "worktree", "add", "-b", "test", worktree]);
   let args: string[] = [];
-  await runDockerMountJob({ cwd: worktree, jobPath: "TASK.md", runner: "dry-run", runCommand: async (_file, input) => {
-    args = input;
-    return { exitCode: 0, stdout: "", stderr: "" };
-  } });
-  const commonDir = execFileSync("git", ["-C", worktree, "rev-parse", "--path-format=absolute", "--git-common-dir"], { encoding: "utf8" }).trim();
+  await runDockerMountJob({
+    cwd: worktree,
+    jobPath: "TASK.md",
+    runner: "dry-run",
+    runCommand: async (_file, input) => {
+      args = input;
+      return { exitCode: 0, stdout: "", stderr: "" };
+    },
+  });
+  const commonDir = execFileSync("git", ["-C", worktree, "rev-parse", "--path-format=absolute", "--git-common-dir"], {
+    encoding: "utf8",
+  }).trim();
   assert.ok(args.includes(`${commonDir}:${commonDir}`));
 });
