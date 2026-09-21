@@ -15,6 +15,8 @@ Keep user-facing commands and examples in [README.md](README.md) and [docs/USAGE
 
 Before submitting a pull request, run `pnpm verify:local` and describe the behavior changed, verification performed, and any limits. GitHub CI repeats the gate on Ubuntu and macOS. `main` requires a pull request with passing `verify` and `scan` checks; no approval is required for this single-maintainer repository.
 
+The [Smoke workflow](.github/workflows/smoke.yml) runs the real host and Docker paths weekly with a dry-run agent. For model-backed changes, follow the [repeatable smoke checks](docs/USAGE.md#repeatable-smoke-checks) on a temporary repository and record which modes passed. The remote smoke script uses a temporary branch in a configured target repository and removes it after the run.
+
 ## Releases
 
 After CI passes on `main`, bump `package.json` and create a matching `vX.Y.Z` tag. Push the commit and tag. The [Release workflow](.github/workflows/release.yml) reruns verification, checks the tag against the package version, and attaches a packed CLI artifact to the GitHub Release. npm publishing is not configured.

@@ -8,7 +8,7 @@ import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
 import { type AgentRunner, DryRunRunner, type IterationResult } from "./runner.ts";
 
-type RunStatus = "completed" | "blocked" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
+type RunStatus = "completed" | "blocked" | "cancelled" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
 
 export type RalphRunResult = {
   jobName: string;
@@ -28,6 +28,7 @@ type RunOptions = {
   cwd?: string;
   runner?: AgentRunner;
   unattended?: boolean;
+  signal?: AbortSignal;
   checksOverride?: string[];
   contexts?: string[];
   jobOverrides?: JobOverrides;
@@ -53,8 +54,8 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
   const job = await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath);
   if (options.checksOverride) job.checks = options.checksOverride;
   applyJobOverrides(job, options.jobOverrides);
+  job.maxMinutes ??= 30;
   if (options.unattended ?? (process.env.RALPHWORKS_UNATTENDED === "1" || process.env.GITHUB_ACTIONS === "true")) {
-    job.maxMinutes ??= 30;
     job.maxCostUsd ??= 3;
   }
   const runner = options.runner ?? new DryRunRunner();
@@ -88,10 +89,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
     let previousFingerprint = await workspaceFingerprint(cwd);
     let stalledIterations = 0;
 
-    if (job.mode === "remote") {
-      status = "blocked";
-      reason = "remote job mode is not implemented";
-    } else if (job.commit === "verified") {
+    if (job.commit === "verified") {
       reason = await verifyCleanGitWorkspace(cwd);
       if (reason) status = "blocked";
       if (job.checks.length === 0) {
@@ -102,6 +100,11 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
 
     if (!reason) {
       for (let iteration = 1; iteration <= job.maxIterations; iteration += 1) {
+        if (options.signal?.aborted) {
+          status = "cancelled";
+          reason = interruptionReason(options.signal);
+          break;
+        }
         if (deadline !== undefined && Date.now() >= deadline) {
           status = "timed_out";
           reason = "wall clock budget exhausted";
@@ -116,6 +119,9 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         await appendEvent(eventsPath, event("iteration_started", job, iteration));
         const headBefore = await currentGitHead(cwd);
         const controller = new AbortController();
+        const abortIteration = () => controller.abort();
+        options.signal?.addEventListener("abort", abortIteration, { once: true });
+        if (options.signal?.aborted) abortIteration();
         let iterationResult: IterationResult;
         try {
           iterationResult = await runWithDeadline(
@@ -131,18 +137,23 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
             deadline,
           );
         } catch (error) {
-          status = controller.signal.aborted ? "timed_out" : "failed";
-          reason = error instanceof Error ? error.message : String(error);
+          status = options.signal?.aborted ? "cancelled" : controller.signal.aborted ? "timed_out" : "failed";
+          reason = status === "cancelled" ? interruptionReason(options.signal) : error instanceof Error ? error.message : String(error);
           await appendProgress(progressPath, iteration, reason, status, []);
           await appendEvent(eventsPath, { ...event("iteration_finished", job, iteration), status, summary: reason });
           break;
+        } finally {
+          options.signal?.removeEventListener("abort", abortIteration);
         }
         for (const runnerEvent of iterationResult.events ?? []) {
           await appendEvent(eventsPath, { ...event(runnerEvent.type, job, iteration), details: runnerEvent.details });
         }
         lastSummary = iterationResult.summary.slice(0, 600);
         costUsd += iterationResult.costUsd ?? 0;
-        if (controller.signal.aborted || (deadline !== undefined && Date.now() >= deadline)) {
+        if (options.signal?.aborted) {
+          status = "cancelled";
+          reason = interruptionReason(options.signal);
+        } else if (controller.signal.aborted || (deadline !== undefined && Date.now() >= deadline)) {
           status = "timed_out";
           reason = "wall clock budget exhausted";
         } else if (job.maxCostUsd !== undefined && costUsd > job.maxCostUsd) {
@@ -158,10 +169,15 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           for (const command of job.checks) {
             await appendEvent(eventsPath, { ...event("check_started", job, iteration), details: { command } });
             const remaining = deadline === undefined ? Infinity : Math.max(1, deadline - Date.now());
-            const checkResult = await runCheck(command, cwd, Math.min(job.checkTimeoutSeconds * 1000, remaining));
+            const checkResult = await runCheck(command, cwd, Math.min(job.checkTimeoutSeconds * 1000, remaining), options.signal);
             checkResults.push(checkResult);
             checks.push({ iteration, ...checkResult });
             await appendEvent(eventsPath, { ...event("check_finished", job, iteration), details: checkResult });
+            if (checkResult.cancelled) {
+              status = "cancelled";
+              reason = interruptionReason(options.signal);
+              break;
+            }
             if (checkResult.timedOut) {
               status = "timed_out";
               reason = `check timed out: ${command}`;
@@ -170,6 +186,10 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           }
         }
         const checksPassed = checkResults.length === job.checks.length && checkResults.every((check) => check.exitCode === 0);
+        if (!reason && options.signal?.aborted) {
+          status = "cancelled";
+          reason = interruptionReason(options.signal);
+        }
         if (!reason && iterationResult.status === "blocked") {
           status = "blocked";
           reason = iterationResult.summary;
@@ -330,6 +350,10 @@ function isNotFound(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
 }
 
+function interruptionReason(signal: AbortSignal | undefined): string {
+  return typeof signal?.reason === "string" ? `run interrupted by ${signal.reason}` : "run interrupted";
+}
+
 async function exists(path: string): Promise<boolean> {
   return stat(path).then(
     () => true,
@@ -384,18 +408,20 @@ type CheckResult = {
   stdout: string;
   stderr: string;
   timedOut?: boolean;
+  cancelled?: boolean;
 };
 
 type CheckRecord = CheckResult & {
   iteration: number;
 };
 
-function runCheck(command: string, cwd: string, timeoutMs: number): Promise<CheckResult> {
+function runCheck(command: string, cwd: string, timeoutMs: number, signal?: AbortSignal): Promise<CheckResult> {
   return new Promise((resolveCheck) => {
     const child = spawn(command, { cwd, shell: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
+    let cancelled = false;
     let error: Error | undefined;
     let settled = false;
     let killTimer: NodeJS.Timeout | undefined;
@@ -412,6 +438,14 @@ function runCheck(command: string, cwd: string, timeoutMs: number): Promise<Chec
       killGroup("SIGTERM");
       killTimer = setTimeout(() => killGroup("SIGKILL"), 1000);
     }, timeoutMs);
+    const abort = () => {
+      cancelled = true;
+      clearTimeout(timer);
+      killGroup("SIGTERM");
+      killTimer ??= setTimeout(() => killGroup("SIGKILL"), 1000);
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
     const capture = (chunk: Buffer, stream: "stdout" | "stderr") => {
       if (stream === "stdout") stdout = (stdout + chunk.toString()).slice(0, 1024 * 1024);
       else stderr = (stderr + chunk.toString()).slice(0, 1024 * 1024);
@@ -426,12 +460,14 @@ function runCheck(command: string, cwd: string, timeoutMs: number): Promise<Chec
       settled = true;
       clearTimeout(timer);
       if (killTimer) clearTimeout(killTimer);
+      signal?.removeEventListener("abort", abort);
       resolveCheck({
         command,
         exitCode: code ?? 1,
         stdout,
         stderr: error ? `${stderr}\n${error.message}`.trim() : stderr,
         ...(timedOut ? { timedOut: true } : {}),
+        ...(cancelled ? { cancelled: true } : {}),
       });
     });
   });

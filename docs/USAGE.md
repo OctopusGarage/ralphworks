@@ -61,6 +61,7 @@ Plain tasks default to:
 - Progress file: `.ralph/progress/<job-name>-<task-hash>.md`.
 - Completion value: `DONE`.
 - Maximum iterations: 5.
+- Maximum wall-clock time: 30 minutes.
 - Checks: none.
 - Commit policy: `none`.
 
@@ -104,11 +105,11 @@ checks:
 | `progress_file` | Optional; defaults to `.ralph/progress/<job-name>-<task-hash>.md`. Set an explicit path when separate tasks should share progress. |
 | `completion_promise` | Optional; defaults to `DONE`. Set only when another completion value is required. |
 | `max_iterations` | Positive integer; defaults to 5. |
-| `max_minutes`, `max_cost_usd` | Optional non-negative numbers. Docker and GitHub Actions default to 30 minutes and $3 when omitted. Pi reports cost, so one iteration may cross the configured amount. |
+| `max_minutes`, `max_cost_usd` | Optional non-negative numbers. Every run defaults to 30 minutes; unattended Docker and GitHub Actions also default to $3 when cost is omitted. Pi reports cost, so one iteration may cross the configured amount. |
 | `checks` | Optional independent validation commands. Required for `commit: verified`. |
 | `check_timeout_seconds` | Timeout for each check; defaults to 60 seconds. |
 | `commit` | `none` by default, or `verified`. |
-| `mode` | Omit or set to `local`. `remote` is reserved and currently blocked. |
+| `mode` | Omit or set to `local`. `remote` fails during parsing; use the separate `remote` command. |
 
 The parser supports a deliberately small YAML subset: top-level scalar fields, a `task: |` block, and a two-space-indented list under `checks`. Nested objects, anchors, and inline arrays are unsupported. Unknown fields, duplicate fields, and unsupported indentation fail immediately.
 
@@ -124,12 +125,13 @@ Terminal states are:
 
 - `completed`: the completion condition and all configured checks passed.
 - `blocked`: the agent reported an error, changed Git HEAD, made no progress, or violated another guard.
+- `cancelled`: the local CLI received Ctrl+C or SIGTERM and stopped the active worker or check before releasing its lock.
 - `max_iterations`: the loop exhausted its iteration limit.
 - `timed_out`: the run or a check exceeded its deadline.
 - `budget_exhausted`: reported model cost crossed the configured limit.
 - `failed`: orchestration or Git processing failed.
 
-Only `completed` returns CLI exit code zero. The CLI runs each Pi iteration in a child process. A wall clock timeout terminates that process group before releasing the worktree lock; cleanup can finish shortly after the configured limit. Embedders using a custom in-process runner must make it respond to abort signals.
+Only `completed` returns CLI exit code zero. The local CLI returns 130 after Ctrl+C and 143 after SIGTERM. It runs each Pi iteration in a child process; cancellation or a wall clock timeout terminates that process group before releasing the worktree lock. Cleanup can finish shortly after the configured limit. Embedders using a custom in-process runner must make it respond to abort signals.
 
 ## Checks and Git policy
 
@@ -198,7 +200,7 @@ The container exports `change.patch`, `result.json`, and `events.jsonl` to `.ral
 
 ## GitHub Actions execution
 
-The `remote` command dispatches GitHub Actions. It is unrelated to the reserved YAML value `mode: remote`.
+The `remote` command dispatches GitHub Actions. YAML `mode: remote` is rejected at load time.
 
 Run `ralphworks init` in the target repository, then commit and push `.github/workflows/ralphworks.yml` and `.gitignore` to the default branch. Initialization does not overwrite an existing workflow. The task file and files referenced by `prompt_file` must exist on the selected run branch.
 
@@ -208,7 +210,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.0` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.1` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
@@ -240,3 +242,11 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 - Push every required input before Docker clone or GitHub Actions execution.
 - Treat returned patches as reviewable artifacts and rerun target project checks after applying them.
 - Run only trusted jobs and check commands. Docker isolates the runtime but does not establish trust.
+
+## Repeatable smoke checks
+
+The repository's [Smoke workflow](../.github/workflows/smoke.yml) runs weekly and on manual dispatch. It starts the real CLI and Docker executors with a dry-run agent, so it needs no model credentials. Run the same infrastructure checks locally with `RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host`, `docker`, or `docker-clone`; the clone mode uses the public RalphWorks `main` branch by default.
+
+To exercise a real Pi model, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scripts/smoke.sh host` and then `scripts/smoke.sh docker`. The script creates a temporary Git repository, requires the agent to write an exact file, checks that file independently, verifies RalphWorks created a commit, and removes the fixture afterward. For clone mode, set `RALPHWORKS_SMOKE_REF` to a pushed RalphWorks branch containing `scripts/smoke-task.md`.
+
+For a configured GitHub target repository, set `RALPHWORKS_SMOKE_TARGET_REPO=owner/repo` and run `scripts/smoke-remote.sh`. The script creates a temporary branch with a checked YAML task, dispatches the target's RalphWorks workflow, validates the downloaded result and patch, and deletes its branch. The target repository must already have the generated workflow, model variable, provider secret, and a RalphWorks source ref pointing to the version under test. These model-backed checks are manual because provider credentials and external GitHub repositories are not available to the public CI job.
