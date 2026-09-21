@@ -131,7 +131,7 @@ async function main(argv: string[]): Promise<number> {
       console.log(`runDir=${result.runDir}`);
       if (result.reason) console.log(`reason=${result.reason}`);
       if (result.status !== "completed" && result.lastSummary) console.log(`lastSummary=${result.lastSummary}`);
-      const failedCheck = result.checks.findLast((check) => check.exitCode !== 0);
+      const failedCheck = result.status === "completed" ? undefined : result.checks.findLast((check) => check.exitCode !== 0);
       if (failedCheck) {
         console.log(`failedCheck=${failedCheck.command} (exit ${failedCheck.exitCode})`);
         const detail = (failedCheck.stderr || failedCheck.stdout).trim().slice(-1000);

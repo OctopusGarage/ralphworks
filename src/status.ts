@@ -29,7 +29,7 @@ export async function readRunStatus(target: string): Promise<RunStatusSummary> {
   const runDir = await resolveRunDir(target);
   const raw = JSON.parse(await readFile(join(runDir, "result.json"), "utf8")) as ResultJson;
   const checks = raw.checks ?? [];
-  const failedCheck = checks.findLast((check) => check.exitCode !== 0);
+  const failedCheck = raw.status === "completed" ? undefined : checks.findLast((check) => check.exitCode !== 0);
   return {
     jobName: raw.jobName,
     status: raw.status,

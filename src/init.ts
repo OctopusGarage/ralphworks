@@ -44,7 +44,7 @@ const TEMPLATES: Template[] = [
       "      RALPH_TASK: ${{ inputs.task }}",
       "      RALPH_RESUME_RUN: ${{ inputs.resume_run_id }}",
       "      RALPHWORKS_MODEL: ${{ vars.RALPHWORKS_MODEL }}",
-      "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.3' }}",
+      "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.4' }}",
       "      RALPHWORKS_SOURCE_REPO: ${{ vars.RALPHWORKS_SOURCE_REPO || 'OctopusGarage/ralphworks' }}",
       "      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}",
       "      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}",

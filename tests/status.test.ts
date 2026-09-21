@@ -37,6 +37,26 @@ test("readRunStatus reads the compact run summary", async () => {
   assert.equal(status.checks.failed, 0);
 });
 
+test("readRunStatus keeps historical failure counts without presenting a completed run as failed", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-status-"));
+  await writeFile(
+    join(workspace, "result.json"),
+    JSON.stringify({
+      jobName: "recovered-job",
+      status: "completed",
+      iterations: 2,
+      runDir: workspace,
+      checks: [
+        { command: "./check.sh", exitCode: 17, stderr: "first check failed" },
+        { command: "./check.sh", exitCode: 0 },
+      ],
+    }),
+  );
+  const status = await readRunStatus(workspace);
+  assert.equal(status.checks.failed, 1);
+  assert.equal(status.failedCheck, undefined);
+});
+
 test("readRunStatus follows a current run pointer file", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-status-"));
   const runDir = join(workspace, ".ralph", "runs", "sample-run");
