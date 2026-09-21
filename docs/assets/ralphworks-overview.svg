@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title description">
+  <title id="title">RalphWorks core architecture</title>
+  <desc id="description">A task enters a bounded orchestration loop. Pi Agent changes the worktree, checks validate it, and progress feeds the next iteration. The run produces code changes and auditable records.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="orchestrator" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4338ca"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+    <style>
+      .heading { font: 700 25px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label-inverse { font: 700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #ffffff; }
+      .body { font: 400 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .body-inverse { font: 400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #dbeafe; }
+      .caption { font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #64748b; letter-spacing: 0.04em; }
+      .line { fill: none; stroke: #64748b; stroke-width: 2.5; marker-end: url(#arrow); }
+      .line-blue { fill: none; stroke: #2563eb; stroke-width: 2.5; marker-end: url(#arrow-blue); }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect x="1" y="1" width="1198" height="558" rx="24" fill="url(#background)" stroke="#cbd5e1"/>
+  <text x="52" y="54" class="heading">How RalphWorks works</text>
+  <text x="52" y="82" class="body">A bounded feedback loop for reliable repository work</text>
+
+  <!-- Input -->
+  <g filter="url(#shadow)">
+    <rect x="52" y="186" width="190" height="150" rx="18" class="card"/>
+  </g>
+  <circle cx="82" cy="219" r="12" fill="#dbeafe"/>
+  <path d="M77 219h10M82 214v10" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
+  <text x="105" y="225" class="caption">INPUT</text>
+  <text x="76" y="268" class="label">Task + context</text>
+  <text x="76" y="298" class="body">Text, files, or YAML</text>
+
+  <!-- Orchestrator -->
+  <g filter="url(#shadow)">
+    <rect x="314" y="142" width="270" height="238" rx="22" fill="url(#orchestrator)"/>
+  </g>
+  <text x="344" y="187" class="caption" style="fill:#bfdbfe">RALPHWORKS</text>
+  <text x="344" y="222" class="label-inverse">Bounded orchestrator</text>
+  <line x1="344" y1="244" x2="554" y2="244" stroke="#93c5fd" stroke-opacity="0.45"/>
+  <text x="344" y="276" class="body-inverse">• carries progress forward</text>
+  <text x="344" y="307" class="body-inverse">• enforces limits and Git policy</text>
+  <text x="344" y="338" class="body-inverse">• decides continue or finish</text>
+
+  <!-- Agent -->
+  <g filter="url(#shadow)">
+    <rect x="664" y="116" width="214" height="128" rx="18" class="card"/>
+  </g>
+  <circle cx="697" cy="151" r="12" fill="#ede9fe"/>
+  <path d="M691 151h12M697 145v12" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/>
+  <text x="720" y="157" class="caption">IMPLEMENT</text>
+  <text x="690" y="198" class="label">Pi Agent</text>
+  <text x="690" y="222" class="body">Makes one useful increment</text>
+
+  <!-- Worktree -->
+  <g filter="url(#shadow)">
+    <rect x="950" y="116" width="198" height="128" rx="18" class="card"/>
+  </g>
+  <circle cx="982" cy="151" r="12" fill="#dcfce7"/>
+  <path d="M976 151h12" stroke="#16a34a" stroke-width="2" stroke-linecap="round"/>
+  <text x="1005" y="157" class="caption">CHANGE</text>
+  <text x="976" y="198" class="label">Worktree</text>
+  <text x="976" y="222" class="body">Receives code changes</text>
+
+  <!-- Checks -->
+  <g filter="url(#shadow)">
+    <rect x="664" y="304" width="214" height="128" rx="18" class="card"/>
+  </g>
+  <circle cx="697" cy="339" r="12" fill="#fef3c7"/>
+  <path d="M691 339l4 4 8-9" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="720" y="345" class="caption">VERIFY</text>
+  <text x="690" y="386" class="label">Checks</text>
+  <text x="690" y="410" class="body">Validates each iteration</text>
+
+  <!-- Output -->
+  <g filter="url(#shadow)">
+    <rect x="950" y="304" width="198" height="128" rx="18" class="card"/>
+  </g>
+  <circle cx="982" cy="339" r="12" fill="#e0f2fe"/>
+  <path d="M977 339l3 3 7-8" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1005" y="345" class="caption">OUTPUT</text>
+  <text x="976" y="386" class="label">Run records</text>
+  <text x="976" y="410" class="body">Status and event history</text>
+
+  <!-- Main flow -->
+  <path d="M242 261 H300" class="line-blue"/>
+  <path d="M584 202 C616 202 624 180 650 180" class="line-blue"/>
+  <path d="M878 180 H936" class="line"/>
+  <path d="M1049 244 V276 C1049 292 1038 296 1018 296 H892 C880 296 878 304 878 322" class="line"/>
+  <path d="M664 368 C624 368 616 336 598 323" class="line-blue"/>
+  <path d="M878 368 H936" class="line"/>
+
+  <!-- Loop labels -->
+  <rect x="595" y="253" width="160" height="31" rx="15" fill="#eef2ff" stroke="#c7d2fe"/>
+  <text x="675" y="274" class="caption" text-anchor="middle" style="fill:#4338ca">NEXT ITERATION</text>
+  <path d="M675 253 C674 232 648 220 598 220" class="line-blue"/>
+
+  <text x="52" y="506" class="body">The loop stops when the task is complete and verified, blocked, or out of budget.</text>
+</svg>

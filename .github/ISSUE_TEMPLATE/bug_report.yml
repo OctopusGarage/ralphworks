@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible RalphWorks failure
+body:
+  - type: input
+    id: version
+    attributes:
+      label: RalphWorks version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: executor
+    attributes:
+      label: Executor
+      options: [host, docker, docker-clone, remote]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant status, result.json, or workflow logs
+      description: Remove credentials and personal paths before posting.
