@@ -3,8 +3,8 @@ set -euo pipefail
 
 mode="${1:-host}"
 case "$mode" in
-  host|docker|docker-clone) ;;
-  *) echo "Usage: scripts/smoke.sh [host|docker|docker-clone]" >&2; exit 2 ;;
+  host|docker|docker-clone|docker-timeout) ;;
+  *) echo "Usage: scripts/smoke.sh [host|docker|docker-clone|docker-timeout]" >&2; exit 2 ;;
 esac
 
 runner="${RALPHWORKS_SMOKE_RUNNER:-pi}"
@@ -20,6 +20,23 @@ trap 'rm -rf -- "$smoke_dir"' EXIT
 pnpm --dir "$repo_root" build >/dev/null
 if [ "$mode" != host ]; then
   docker build -q -f "$repo_root/docker/ralphworks-sandbox.Dockerfile" -t ralphworks-sandbox:latest "$repo_root" >/dev/null
+fi
+
+if [ "$mode" = docker-timeout ]; then
+  (cd "$repo_root" && node --input-type=module <<'NODE'
+import { runDockerContainer } from './dist/docker-command.js';
+const result = await runDockerContainer(['run', '--rm', '--entrypoint', 'bash', 'ralphworks-sandbox:latest', '-c', 'sleep 30'], 0.02);
+if (!result.timedOut || result.exitCode !== 124 || !result.stderr.includes('exceeded 0.02 minutes')) {
+  throw new Error(`Expected a bounded Docker timeout, got ${JSON.stringify(result)}`);
+}
+console.log('smoke=docker/outer-timeout');
+NODE
+  )
+  if [ -n "$(docker ps -a --filter name=ralphworks- --format '{{.Names}}')" ]; then
+    echo 'Timed-out RalphWorks container was not removed' >&2
+    exit 1
+  fi
+  exit 0
 fi
 
 if [ "$mode" = docker-clone ]; then

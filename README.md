@@ -11,11 +11,11 @@ A bounded [Ralph loop](https://www.aihero.dev/getting-started-with-ralph) for co
 
 ## Get started
 
-Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.4 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.4), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
+Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.5 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.5), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.4/ralphworks-0.1.4.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.5/ralphworks-0.1.5.tgz
 pi # configure /login and /model, then exit
 
 cd /path/to/your/repo
@@ -63,5 +63,6 @@ ralphworks run ./docs/feature.md --check 'npm test' --commit verified --max-minu
 | GitHub Actions | `ralphworks remote task.md --repo owner/repo --ref branch` | Downloads a patch and run records. |
 
 Docker requires the [sandbox image](docs/USAGE.md#docker-execution). Clone and GitHub Actions modes require the task and inputs on the selected branch; they never push generated code. For GitHub Actions, run `ralphworks init` in the target repository, commit the generated workflow, then configure `RALPHWORKS_MODEL` and a provider secret as described in the [remote setup guide](docs/USAGE.md#github-actions-execution). Continue an unfinished remote run with `--resume-from <run-id>` on the same unchanged branch.
+Docker and remote commands have a 120-minute total deadline, including setup; change it with `--total-minutes N`. For interrupted local runs, follow the [recovery steps](docs/USAGE.md#recovering-an-interrupted-local-run) before restarting verified commits.
 
 [Full usage and configuration](docs/USAGE.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License](LICENSE)

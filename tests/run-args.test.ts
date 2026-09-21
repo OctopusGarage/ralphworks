@@ -23,6 +23,17 @@ test("parseRunArgs accepts docker as the local Docker executor", () => {
   });
 });
 
+test("parseRunArgs accepts a bounded outer deadline", () => {
+  assert.deepEqual(parseRunArgs(["--executor", "docker", "--total-minutes", "45"]), {
+    runner: "pi",
+    executor: "docker",
+    totalMinutes: 45,
+  });
+  const invalid = parseRunArgs(["--total-minutes", "1441"]);
+  assert.ok(invalid instanceof Error);
+  assert.match(invalid.message, /at most 1440/);
+});
+
 test("parseRunArgs accepts docker-clone as the remote clone Docker executor", () => {
   assert.deepEqual(parseRunArgs(["--executor", "docker-clone"]), {
     runner: "pi",
