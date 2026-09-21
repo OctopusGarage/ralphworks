@@ -152,7 +152,7 @@ export const UPDATE_BRANCH_WORKFLOW = [
   '          base=$(cat "$RUNNER_TEMP/update/export/base-sha.txt")',
   '          current=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)',
   '          current_base=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BASE_REF" --jq .object.sha)',
-  '          [ "$head" = "$current" ] && [ "$base" = "$current_base" ] || { echo \'PR or base branch advanced\' >&2; exit 1; }',
+  '          if [ "$head" != "$current" ] || [ "$base" != "$current_base" ]; then echo \'PR or base branch advanced\' >&2; exit 1; fi',
   '          patch="$RUNNER_TEMP/update/export/change.patch"',
   '          if [ ! -s "$patch" ]; then',
   '            gh pr comment "$PR_NUMBER" --body "Branch already contains the current base. Run: $RUN_URL"',
