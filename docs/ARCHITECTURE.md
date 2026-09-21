@@ -13,7 +13,9 @@ flowchart LR
     Orchestrator --> State[Run state]
     Docker[Docker executors] --> CLI
     Remote[GitHub remote executor] --> Actions[GitHub Actions]
+    Scenarios[Issue and PR workflows] --> Actions
     Actions --> CLI
+    Scenarios --> Delivery[GitHub issue and PR delivery]
 ```
 
 ## Modules
@@ -33,7 +35,7 @@ flowchart LR
 | `docker-clone-executor.ts` | Clones a branch into the sandbox and exports an inspectable binary patch plus run records. |
 | `docker-env.ts` | Transfers only selected model, Pi, check, context, override, and provider environment settings. |
 | `remote-executor.ts` | Dispatches GitHub Actions, correlates the run, waits for completion, and downloads artifacts. |
-| `init.ts` | Adds the target repository workflow and ignores local RalphWorks state without overwriting existing files. |
+| `init.ts`, `*-workflow.ts` | Generate the manual and issue/PR workflows without overwriting existing files; ignore local RalphWorks state. |
 | `status.ts`, `trace.ts` | Read compact summaries from structured result and event files. |
 
 ## Core state machine
@@ -105,6 +107,8 @@ Docker uses Pi's native configuration files. Provider credentials are forwarded 
 
 Remote and clone modes deliberately return a patch. They do not mutate the caller's branch, push, open a pull request, or merge. This leaves review and repository delivery policy outside the execution engine.
 
+The issue and PR workflows supply that repository delivery policy. Their read-only execution jobs run the CLI and export artifacts. Separate delivery steps validate the result before writing GitHub issues, branches, reviews, or PRs. The workflows never merge implementation PRs.
+
 ## Persistent files
 
 | Path | Purpose |
@@ -122,5 +126,6 @@ Remote and clone modes deliberately return a patch. They do not mutate the calle
 - The YAML parser supports a small reviewed subset rather than general YAML.
 - Local runs start a new process and reuse saved progress for the same task. Remote runs can restore a prior run's patch and progress on the same unchanged branch with `--resume-from`.
 - YAML `mode: remote` is rejected during parsing; GitHub delivery uses the separate `remote` command.
-- There is no automatic branch, push, pull request, merge, deployment, dashboard, or general command policy engine.
+- The core CLI does not create branches or PRs; only the generated issue and PR workflows deliver to GitHub. They do not merge or deploy changes.
+- There is no dashboard or general command policy engine.
 - Docker is an execution boundary, not a trust boundary for arbitrary job and check commands.
