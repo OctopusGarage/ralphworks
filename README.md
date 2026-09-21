@@ -11,11 +11,11 @@ A bounded [Ralph loop](https://www.aihero.dev/getting-started-with-ralph) for co
 
 ## Get started
 
-Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.2.0 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.2.0), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
+Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.1 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.1), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.2.0/ralphworks-0.2.0.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.1/ralphworks-0.1.1.tgz
 pi # configure /login and /model, then exit
 
 cd /path/to/your/repo

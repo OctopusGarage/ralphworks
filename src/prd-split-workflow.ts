@@ -25,7 +25,7 @@ export const PRD_SPLIT_WORKFLOW = [
   "      ISSUE_NUMBER: ${{ github.event.issue.number }}",
   "      LABEL_ACTOR: ${{ github.event.sender.login }}",
   "      RALPHWORKS_MODEL: ${{ vars.RALPHWORKS_MODEL }}",
-  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.2.0' }}",
+  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.1' }}",
   "      RALPHWORKS_SOURCE_REPO: ${{ vars.RALPHWORKS_SOURCE_REPO || 'OctopusGarage/ralphworks' }}",
   "    steps:",
   "      - name: Authorize and require empty PRD",

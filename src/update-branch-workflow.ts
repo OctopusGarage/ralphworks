@@ -29,7 +29,7 @@ export const UPDATE_BRANCH_WORKFLOW = [
   "      BASE_REF: ${{ github.event.pull_request.base.ref }}",
   "      RALPHWORKS_MODEL: ${{ vars.RALPHWORKS_MODEL }}",
   "      RALPHWORKS_CHECK: ${{ vars.RALPHWORKS_ISSUE_CHECK }}",
-  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.2.0' }}",
+  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.1' }}",
   "      RALPHWORKS_SOURCE_REPO: ${{ vars.RALPHWORKS_SOURCE_REPO || 'OctopusGarage/ralphworks' }}",
   "    steps:",
   "      - name: Authorize branch update",
