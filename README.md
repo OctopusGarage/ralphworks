@@ -11,11 +11,11 @@ A bounded [Ralph loop](https://www.aihero.dev/getting-started-with-ralph) for co
 
 ## Get started
 
-Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.3 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.3), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
+Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.4 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.4), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.3/ralphworks-0.1.3.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.4/ralphworks-0.1.4.tgz
 pi # configure /login and /model, then exit
 
 cd /path/to/your/repo
@@ -38,6 +38,7 @@ The default limit is **five iterations**. Progress and results live in `.ralph/`
 ## Give it a task
 
 Use direct text, any plain text or Markdown file, or a small YAML job. Plain task files have no required name or format. Add supporting files or directories with repeatable `--context`.
+For longer work, write small checklist items with observable acceptance criteria; RalphWorks carries progress across fresh sessions without requiring a special PRD format. See the [multi-item task example](docs/USAGE.md#multi-item-tasks).
 
 ```bash
 ralphworks run ./docs/feature.md --context ./docs/api --max-iterations 8

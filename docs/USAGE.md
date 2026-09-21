@@ -8,7 +8,7 @@ RalphWorks requires Node.js 24. Install the release package and configure Pi:
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.3/ralphworks-0.1.3.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.4/ralphworks-0.1.4.tgz
 pi # configure /login and /model, then exit
 ralphworks --help
 ```
@@ -75,6 +75,26 @@ Plain tasks default to:
 - Commit policy: `none`.
 
 The agent can modify any file in the current worktree. RalphWorks injects its own completion and Git rules, so task text does not need to mention commits or completion tags.
+
+### Multi-item tasks
+
+For a longer task, give the agent a stable list of small items and an observable acceptance condition for each one:
+
+```markdown
+# Goal
+Add CSV export to the report page.
+
+## Work items
+- [ ] Add the export action to the report page.
+- [ ] Serialize report rows with correct quoting and headers.
+- [ ] Cover empty reports and quoted values in tests.
+
+## Acceptance
+- The export downloads a CSV with the displayed rows.
+- `npm test` and `npm run build` pass.
+```
+
+The checklist is ordinary task text, not a format RalphWorks parses or edits. Keep the task file stable during a run. RalphWorks supplies the same task and its saved progress to each new agent session; the handoff should identify the completed item, check evidence, and the next item. Use independent `--check` commands or a YAML job for the acceptance criteria. Make each item small enough to complete and check in one iteration.
 
 ### Additional context
 
@@ -221,7 +241,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.3` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.4` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
@@ -259,5 +279,7 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 The repository's [Smoke workflow](../.github/workflows/smoke.yml) runs for every pull request, weekly, and on manual dispatch. It starts the real CLI and Docker executors with a dry-run agent, so it needs no model credentials. It is a required PR check. Run the same infrastructure checks locally with `RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host`, `docker`, or `docker-clone`; the clone mode uses the public RalphWorks `main` branch by default.
 
 To exercise a real Pi model, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scripts/smoke.sh host` and then `scripts/smoke.sh docker`. The script creates a temporary Git repository, requires the agent to write an exact file, checks that file independently, verifies RalphWorks created a commit, and removes the fixture afterward. For clone mode, set `RALPHWORKS_SMOKE_REF` to a pushed RalphWorks branch containing `scripts/smoke-task.md`.
+
+For a real multi-iteration feedback loop, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scripts/smoke-multi-iteration.sh`. The first independent check deliberately fails and gives the agent a new token. The script verifies that the next iteration reads the feedback, creates the correct files, passes the check, and produces a verified commit.
 
 For a configured GitHub target repository, set `RALPHWORKS_SMOKE_TARGET_REPO=owner/repo` and run `scripts/smoke-remote.sh`. The script creates a temporary branch with a checked YAML task, dispatches the target's RalphWorks workflow, validates the downloaded result and patch, and deletes its branch. The target repository must already have the generated workflow, model variable, provider secret, and a RalphWorks source ref pointing to the version under test. These model-backed checks are manual because provider credentials and external GitHub repositories are not available to the public CI job.

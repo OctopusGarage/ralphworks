@@ -53,7 +53,9 @@ test("PiSdkRunner builds a Ralph prompt and normalizes Pi session events", async
   assert.match(capturedPrompt, /<promise>DONE<\/promise>/);
   assert.match(capturedPrompt, /Do not make Git commits/);
   assert.match(capturedPrompt, /highest-priority unfinished item/);
-  assert.match(capturedPrompt, /item addressed, work done, files changed/);
+  assert.match(capturedPrompt, /use saved progress to identify the highest-priority unfinished item/);
+  assert.match(capturedPrompt, /address its feedback from progress/);
+  assert.match(capturedPrompt, /item addressed, evidence from checks, files changed/);
   assert.equal(unsubscribed, true);
   assert.deepEqual(
     result.events?.map((event) => event.type),
