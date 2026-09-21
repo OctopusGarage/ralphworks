@@ -1,6 +1,6 @@
 {
   "name": "ralphworks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Bounded Ralph loop orchestrator powered by Pi.",
   "repository": {
     "type": "git",
@@ -31,9 +31,10 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test --test-concurrency=1",
     "test:coverage": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=80 --test-coverage-branches=75 --test-coverage-functions=80",
+    "verify:workflows": "node scripts/verify-workflows.mjs",
     "knip": "knip",
     "audit": "pnpm audit --audit-level high",
-    "verify:local": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm knip && pnpm build && pnpm pack --pack-destination /tmp && pnpm audit",
+    "verify:local": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm verify:workflows && pnpm knip && pnpm build && pnpm pack --pack-destination /tmp && pnpm audit",
     "prepare": "husky"
   },
   "dependencies": {

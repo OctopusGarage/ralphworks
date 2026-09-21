@@ -6,14 +6,12 @@ This guide installs RalphWorks' label-driven GitHub Actions workflows in another
 
 The target must have GitHub Issues, Pull Requests, and Actions enabled. The workflows run on GitHub-hosted Ubuntu runners with Node.js 24 and pnpm 10.13.1. Project dependencies are installed with pnpm, npm, or Yarn when the corresponding lockfile exists. Make sure the repository's own test and build commands run on Ubuntu.
 
-The current `v0.1.0` release predates these scenario templates. Until a newer release contains them, build RalphWorks from its `main` branch and run its CLI from the target repository:
+Install RalphWorks v0.1.1 or later, then initialize the target repository:
 
 ```bash
-git clone https://github.com/OctopusGarage/ralphworks.git /tmp/ralphworks-setup
-pnpm --dir /tmp/ralphworks-setup install --frozen-lockfile
-pnpm --dir /tmp/ralphworks-setup build
+npm install -g https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.1/ralphworks-0.1.1.tgz
 cd /path/to/target-repository
-node /tmp/ralphworks-setup/dist/cli.js init
+ralphworks init
 ```
 
 `init` creates eight `ralphworks-*.yml` scenario files, the separate `ralphworks.yml` manual remote workflow, and a `.ralph/` ignore rule. It does not replace existing files: a `skipped=` line means the existing workflow needs a manual comparison and update. Commit the generated files to the **default branch** before adding trigger labels. Label events use the workflow definitions on that branch.
@@ -32,7 +30,7 @@ Set these in the target repository under **Settings â†’ Secrets and variables â†
 | Provider API key | Secret | Yes | The selected model provider's credential, for example `ZAI_CODING_CN_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `NVIDIA_API_KEY`. |
 | `RALPHWORKS_AUTH_SECRET` | Variable | For other provider key names | Name of the provider credential secret to export into the model process. |
 | `RALPHWORKS_SOURCE_REPO` | Variable | No | RalphWorks source repository; defaults to `OctopusGarage/ralphworks`. |
-| `RALPHWORKS_REF` | Variable | Recommended | Branch, tag, or full commit SHA in the source repository. The generated workflows default to `v0.1.0`. Pin a reviewed commit for repeatable runs. |
+| `RALPHWORKS_REF` | Variable | Recommended | Branch, tag, or full commit SHA in the source repository. The generated workflows default to `v0.1.1`. Pin a reviewed commit for repeatable runs. |
 | `RALPHWORKS_REPO_TOKEN` | Secret | Only for a private source repository | Read access to `RALPHWORKS_SOURCE_REPO`. |
 
 For example, with GitHub CLI authenticated to the target repository:
@@ -87,7 +85,7 @@ Add `ralphworks:implement-prd` to the parent. The workflow selects its first ope
 
 ### Dependency queue
 
-Use GitHub's native issue dependency relationship to mark an issue as blocked by another issue, then add `ralphworks:queued` to the blocked issue. On an issue close event, `ralphworks-queue.yml` checks queued issues. When none of their dependencies remain open, it removes `ralphworks:queued` and adds `ralphworks:run` for an ordinary issue or `ralphworks:implement-prd` for a parent with sub-issues. The queue workflow can also be run manually from Actions. A closed dependency may remain visible in GitHub's dependency list; only open dependencies block promotion.
+Use GitHub's native issue dependency relationship to mark an issue as blocked by another issue, then add `ralphworks:queued` to the blocked issue. On an issue close event, `ralphworks-queue.yml` checks all queued issues across API pages. When none of their dependencies remain open, it removes `ralphworks:queued` and adds `ralphworks:run` for an ordinary issue or `ralphworks:implement-prd` for a parent with sub-issues. The queue workflow can also be run manually from Actions. A closed dependency may remain visible in GitHub's dependency list; only open dependencies block promotion.
 
 ### PR review and feedback
 
@@ -113,6 +111,6 @@ It reviews the repository and creates an issue labeled `ralphworks:architecture`
 
 Implementation and conflict-resolution model runs allow at most five iterations, 30 minutes, and $3 of reported model cost. PRD splitting and architecture review allow three iterations, 20 minutes, and $1. PR review allows two iterations, 20 minutes, and $1. A branch update without conflicts runs checks without invoking the model. These are workflow limits, not a substitute for provider-side billing controls.
 
-On failure, inspect the linked Actions run and its artifacts. Delivery failures may leave a branch, PR, or some sub-issues already created. Resolve that partial state before retrying. Workflows remove their trigger label and usually add `ralphworks:blocked`; remove that status label and re-add the relevant trigger label only after the cause is fixed. `init` also generates `ralphworks.yml` for the separate manual `ralphworks remote` patch workflow; it does not enter these issue and PR paths.
+On failure, inspect the linked Actions run and its artifacts. Delivery failures may leave a branch or PR already created. Resolve that partial state before retrying. For a PRD split whose model job succeeded but delivery created only some sub-issues, use **Re-run failed jobs** on the original Actions run (or `gh run rerun RUN_ID --failed`). The delivery job reuses that run's proposal, skips matching sub-issues, and creates the rest. It stops if an existing sub-issue differs from the proposal; inspect the partial state before changing it. A new label event starts a new proposal and will reject existing sub-issues. Workflows remove their trigger label and usually add `ralphworks:blocked`; successful PRD delivery clears that status label. For other failures, remove the status label and re-add the relevant trigger label only after the cause is fixed. `init` also generates `ralphworks.yml` for the separate manual `ralphworks remote` patch workflow; it does not enter these issue and PR paths.
 
 A small end-to-end check for a new installation is: create a documentation issue, add `ralphworks:run`, confirm that a checked draft PR and review appear, then inspect and merge the PR. For PRD and queue validation, use a small parent with two child tasks and a queued issue with a native dependency. Keep normal branch protection and required PR checks enabled.

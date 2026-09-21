@@ -34,7 +34,7 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(action, /ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
   assert.match(action, /ZAI_CODING_CN_API_KEY/);
   assert.match(action, /RALPHWORKS_AUTH_SECRET_VALUE: \$\{\{ secrets\[vars\.RALPHWORKS_AUTH_SECRET\] \}\}/);
-  assert.match(action, /RALPHWORKS_REF: \$\{\{ vars\.RALPHWORKS_REF \|\| 'v0\.1\.0' \}\}/);
+  assert.match(action, /RALPHWORKS_REF: \$\{\{ vars\.RALPHWORKS_REF \|\| 'v0\.1\.1' \}\}/);
   assert.match(action, /resume_run_id:/);
   assert.match(action, /actions: read/);
   assert.match(action, /gh run download "\$RALPH_RESUME_RUN"/);
@@ -77,6 +77,34 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   ]) {
     const workflow = await readFile(join(workspace, ".github", "workflows", file), "utf8");
     assert.match(workflow, new RegExp(trigger));
+  }
+
+  for (const file of [
+    "ralphworks-issue.yml",
+    "ralphworks-prd-split.yml",
+    "ralphworks-prd-implement.yml",
+    "ralphworks-pr-review.yml",
+    "ralphworks-pr-feedback.yml",
+    "ralphworks-update-branch.yml",
+    "ralphworks-architecture.yml",
+  ]) {
+    const workflow = await readFile(join(workspace, ".github", "workflows", file), "utf8");
+    assert.match(workflow, /RALPHWORKS_REF: \$\{\{ vars\.RALPHWORKS_REF \|\| 'v0\.1\.1' \}\}/);
+    assert.match(workflow, /ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
+    assert.match(workflow, /RALPHWORKS_AUTH_SECRET_VALUE: \$\{\{ secrets\[vars\.RALPHWORKS_AUTH_SECRET\] \}\}/);
+  }
+
+  for (const file of [
+    "ralphworks-prd-split.yml",
+    "ralphworks-prd-implement.yml",
+    "ralphworks-pr-review.yml",
+    "ralphworks-pr-feedback.yml",
+    "ralphworks-update-branch.yml",
+    "ralphworks-architecture.yml",
+  ]) {
+    const workflow = await readFile(join(workspace, ".github", "workflows", file), "utf8");
+    assert.match(workflow, /gh repo clone "\$RALPHWORKS_SOURCE_REPO" "\$RUNNER_TEMP\/ralphworks"/);
+    assert.match(workflow, /pnpm --dir "\$RUNNER_TEMP\/ralphworks" build/);
   }
 });
 
