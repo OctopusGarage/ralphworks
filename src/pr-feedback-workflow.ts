@@ -131,7 +131,7 @@ export const PR_FEEDBACK_WORKFLOW = [
   "          set -euo pipefail",
   '          current=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)',
   '          base=$(cat "$RUNNER_TEMP/feedback/export/base-sha.txt")',
-  '          [ "$current" = "$base" ] && [ "$(git rev-parse HEAD)" = "$base" ] || { echo \'PR branch advanced\' >&2; exit 1; }',
+  '          if [ "$current" != "$base" ] || [ "$(git rev-parse HEAD)" != "$base" ]; then echo \'PR branch advanced\' >&2; exit 1; fi',
   '          git switch -c "$BRANCH"',
   '          git apply --check "$RUNNER_TEMP/feedback/export/change.patch"',
   '          git apply "$RUNNER_TEMP/feedback/export/change.patch"',
