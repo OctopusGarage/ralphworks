@@ -1,6 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { ARCHITECTURE_WORKFLOW } from "./architecture-workflow.ts";
 import { ISSUE_WORKFLOW } from "./issue-workflow.ts";
+import { PR_FEEDBACK_WORKFLOW } from "./pr-feedback-workflow.ts";
+import { PR_REVIEW_WORKFLOW } from "./pr-review-workflow.ts";
+import { PRD_IMPLEMENT_WORKFLOW } from "./prd-implement-workflow.ts";
+import { PRD_SPLIT_WORKFLOW } from "./prd-split-workflow.ts";
+import { QUEUE_WORKFLOW } from "./queue-workflow.ts";
+import { UPDATE_BRANCH_WORKFLOW } from "./update-branch-workflow.ts";
 
 export type InitResult = {
   created: string[];
@@ -15,6 +22,13 @@ type Template = {
 
 const TEMPLATES: Template[] = [
   { path: ".github/workflows/ralphworks-issue.yml", content: ISSUE_WORKFLOW },
+  { path: ".github/workflows/ralphworks-prd-split.yml", content: PRD_SPLIT_WORKFLOW },
+  { path: ".github/workflows/ralphworks-prd-implement.yml", content: PRD_IMPLEMENT_WORKFLOW },
+  { path: ".github/workflows/ralphworks-queue.yml", content: QUEUE_WORKFLOW },
+  { path: ".github/workflows/ralphworks-pr-review.yml", content: PR_REVIEW_WORKFLOW },
+  { path: ".github/workflows/ralphworks-pr-feedback.yml", content: PR_FEEDBACK_WORKFLOW },
+  { path: ".github/workflows/ralphworks-update-branch.yml", content: UPDATE_BRANCH_WORKFLOW },
+  { path: ".github/workflows/ralphworks-architecture.yml", content: ARCHITECTURE_WORKFLOW },
   {
     path: ".github/workflows/ralphworks.yml",
     content: [
