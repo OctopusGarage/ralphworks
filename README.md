@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml)
 [![Gitleaks](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml)
+[![Release](https://github.com/OctopusGarage/ralphworks/actions/workflows/release.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/releases/latest)
 ![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)
 [![MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
