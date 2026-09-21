@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm verify:local
 ```
 
-Use Node.js 24 and pnpm 10. `verify:local` runs formatting and lint checks, TypeScript, tests with coverage thresholds, unused-code checks, build, package validation, and a high-severity dependency audit. The pre-push hook runs the same gate after `pnpm install` installs Husky.
+Use Node.js 24 and pnpm 10. `verify:local` runs formatting and lint checks, TypeScript, tests with coverage thresholds, actionlint on the maintained and freshly generated GitHub workflows, unused-code checks, build, package validation, and a high-severity dependency audit. The workflow check downloads a checksum-verified, pinned actionlint binary on supported macOS and Linux platforms and caches it outside the repository. The pre-push hook runs the same gate after `pnpm install` installs Husky.
 
 Keep user-facing commands and examples in [README.md](README.md), [docs/USAGE.md](docs/USAGE.md), and the [issue workflow guide](docs/ISSUE_WORKFLOWS.md) in sync. Add tests for behavior changes. Use a dedicated branch or worktree for changes, and use conventional commit subjects such as `fix:`, `feat:`, and `docs:`.
 

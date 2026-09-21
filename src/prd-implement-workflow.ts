@@ -29,7 +29,7 @@ export const PRD_IMPLEMENT_WORKFLOW = [
   "      BRANCH: ralphworks/prd-${{ github.event.issue.number }}",
   "      RALPHWORKS_MODEL: ${{ vars.RALPHWORKS_MODEL }}",
   "      RALPHWORKS_CHECK: ${{ vars.RALPHWORKS_ISSUE_CHECK }}",
-  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.0' }}",
+  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.2.0' }}",
   "      RALPHWORKS_SOURCE_REPO: ${{ vars.RALPHWORKS_SOURCE_REPO || 'OctopusGarage/ralphworks' }}",
   "    steps:",
   "      - name: Select next sub-issue",
