@@ -11,7 +11,18 @@ test("initProject creates the workflow and ignores runtime state", async () => {
 
   const result = await initProject(workspace);
 
-  assert.deepEqual(result.created, [".github/workflows/ralphworks-issue.yml", ".github/workflows/ralphworks.yml", ".gitignore"]);
+  assert.deepEqual(result.created, [
+    ".github/workflows/ralphworks-issue.yml",
+    ".github/workflows/ralphworks-prd-split.yml",
+    ".github/workflows/ralphworks-prd-implement.yml",
+    ".github/workflows/ralphworks-queue.yml",
+    ".github/workflows/ralphworks-pr-review.yml",
+    ".github/workflows/ralphworks-pr-feedback.yml",
+    ".github/workflows/ralphworks-update-branch.yml",
+    ".github/workflows/ralphworks-architecture.yml",
+    ".github/workflows/ralphworks.yml",
+    ".gitignore",
+  ]);
   assert.deepEqual(result.skipped, []);
   assert.deepEqual(result.updated, []);
   assert.equal(await readFile(join(workspace, ".gitignore"), "utf8"), ".ralph/\n");
@@ -55,6 +66,18 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(issueAction, /git apply --check/);
   assert.match(issueAction, /gh pr create --draft/);
   assert.match(issueAction, /if: failure\(\)/);
+  for (const [file, trigger] of [
+    ["ralphworks-prd-split.yml", "ralphworks:to-issues"],
+    ["ralphworks-prd-implement.yml", "ralphworks:implement-prd"],
+    ["ralphworks-queue.yml", "ralphworks:queued"],
+    ["ralphworks-pr-review.yml", "ralphworks:review"],
+    ["ralphworks-pr-feedback.yml", "ralphworks:implement"],
+    ["ralphworks-update-branch.yml", "ralphworks:update-branch"],
+    ["ralphworks-architecture.yml", "ralphworks:architecture"],
+  ]) {
+    const workflow = await readFile(join(workspace, ".github", "workflows", file), "utf8");
+    assert.match(workflow, new RegExp(trigger));
+  }
 });
 
 test("initProject skips existing files without overwriting them", async () => {
@@ -64,7 +87,17 @@ test("initProject skips existing files without overwriting them", async () => {
   const second = await initProject(workspace);
 
   assert.deepEqual(second.created, []);
-  assert.deepEqual(second.skipped, [".github/workflows/ralphworks-issue.yml", ".github/workflows/ralphworks.yml"]);
+  assert.deepEqual(second.skipped, [
+    ".github/workflows/ralphworks-issue.yml",
+    ".github/workflows/ralphworks-prd-split.yml",
+    ".github/workflows/ralphworks-prd-implement.yml",
+    ".github/workflows/ralphworks-queue.yml",
+    ".github/workflows/ralphworks-pr-review.yml",
+    ".github/workflows/ralphworks-pr-feedback.yml",
+    ".github/workflows/ralphworks-update-branch.yml",
+    ".github/workflows/ralphworks-architecture.yml",
+    ".github/workflows/ralphworks.yml",
+  ]);
   assert.deepEqual(second.updated, []);
   assert.equal(await readFile(join(workspace, ".gitignore"), "utf8"), ".ralph/\n");
 });
