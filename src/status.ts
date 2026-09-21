@@ -1,0 +1,46 @@
+import { readFile, stat } from "node:fs/promises";
+import { dirname, isAbsolute, join } from "node:path";
+
+export type RunStatusSummary = {
+  jobName: string;
+  status: string;
+  iterations: number;
+  runDir: string;
+  checks: {
+    total: number;
+    failed: number;
+  };
+};
+
+type ResultJson = {
+  jobName: string;
+  status: string;
+  iterations: number;
+  runDir: string;
+  checks?: Array<{ exitCode: number }>;
+};
+
+export async function readRunStatus(target: string): Promise<RunStatusSummary> {
+  const runDir = await resolveRunDir(target);
+  const raw = JSON.parse(await readFile(join(runDir, "result.json"), "utf8")) as ResultJson;
+  const checks = raw.checks ?? [];
+  return {
+    jobName: raw.jobName,
+    status: raw.status,
+    iterations: raw.iterations,
+    runDir,
+    checks: {
+      total: checks.length,
+      failed: checks.filter((check) => check.exitCode !== 0).length,
+    },
+  };
+}
+
+async function resolveRunDir(target: string): Promise<string> {
+  const targetStat = await stat(target);
+  if (targetStat.isDirectory()) {
+    return target;
+  }
+  const pointer = (await readFile(target, "utf8")).trim();
+  return isAbsolute(pointer) ? pointer : join(dirname(target), pointer);
+}
