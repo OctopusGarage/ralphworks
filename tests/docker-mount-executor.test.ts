@@ -46,6 +46,7 @@ test("runDockerMountJob mounts the current workspace and selected Pi config", as
   assert.ok(calls[0].args.includes('RALPHWORKS_CONTEXTS_JSON=["spec.md","docs/api"]'));
   assert.ok(calls[0].args.includes('RALPHWORKS_JOB_OVERRIDES_JSON={"maxIterations":8,"commit":"none"}'));
   assert.match(calls[0].args.at(-1) ?? "", /cd \/workspace/);
+  assert.ok((calls[0].args.at(-1) ?? "").includes('usermod --non-unique --uid "$WORKSPACE_UID" agent'));
   assert.match(calls[0].args.at(-1) ?? "", /chown agent:node \/workspace\/node_modules/);
   assert.match(calls[0].args.at(-1) ?? "", /su agent -s \/bin\/bash/);
   assert.match(calls[0].args.at(-1) ?? "", /git config --global user\.name/);
