@@ -49,7 +49,12 @@ chmod +x "$smoke_dir/check.sh"
 
 args=(run task.md --check "$smoke_dir/check.sh" --commit verified --max-iterations 3 --max-minutes 10 --max-cost-usd 1)
 if [ -n "${RALPHWORKS_SMOKE_MODEL:-}" ]; then args+=(--model "$RALPHWORKS_SMOKE_MODEL"); fi
-run_output="$(cd "$workspace" && node "$repo_root/dist/cli.js" "${args[@]}")"
+if run_output="$(cd "$workspace" && node "$repo_root/dist/cli.js" "${args[@]}" 2>&1)"; then
+  :
+else
+  printf '%s\n' "$run_output" >&2
+  exit 1
+fi
 printf '%s\n' "$run_output"
 if [[ "$run_output" == *"failedCheck="* ]]; then
   echo 'A completed run displayed a historical failed check as its final failure' >&2
