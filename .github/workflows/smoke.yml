@@ -1,0 +1,48 @@
+name: Smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.13.1
+      - run: pnpm install --frozen-lockfile
+      - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host
+      - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker
+      - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker-clone
+      - run: RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh docker-timeout
+
+  model-loop:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.13.1
+      - run: pnpm install --frozen-lockfile
+      - name: Real Pi multi-iteration loop
+        env:
+          ZAI_CODING_CN_API_KEY: ${{ secrets.ZAI_CODING_CN_API_KEY }}
+          RALPHWORKS_SMOKE_MODEL: zai-coding-cn/glm-5.3
+        run: |
+          test -n "$ZAI_CODING_CN_API_KEY"
+          scripts/smoke-multi-iteration.sh

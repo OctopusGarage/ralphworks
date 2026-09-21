@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.ralph/
+*.log
+.husky/_/
+
+# Local research and agent planning artifacts
+docs/research/
+docs/superpowers/
