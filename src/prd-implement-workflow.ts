@@ -6,7 +6,7 @@ export const PRD_IMPLEMENT_WORKFLOW = [
   "    types: [labeled]",
   "",
   "concurrency:",
-  "  group: ralphworks-prd-${{ github.event.issue.number }}",
+  "  group: ralphworks-prd-implement-${{ github.event.issue.number }}",
   "  cancel-in-progress: false",
   "",
   "jobs:",
