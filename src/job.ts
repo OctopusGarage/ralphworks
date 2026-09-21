@@ -11,7 +11,7 @@ export type RalphJob = {
   maxIterations: number;
   maxMinutes?: number;
   maxCostUsd?: number;
-  mode: "local" | "remote";
+  mode: "local";
   checks: string[];
   checkTimeoutSeconds: number;
   commit: "none" | "verified";
@@ -212,13 +212,14 @@ function positiveNumberValue(value: unknown, name: string): number | undefined {
   return value;
 }
 
-function modeValue(value: unknown): "local" | "remote" {
+function modeValue(value: unknown): "local" {
   if (value === undefined) {
     return "local";
   }
-  if (value === "local" || value === "remote") {
+  if (value === "local") {
     return value;
   }
+  if (value === "remote") throw new Error("Job field mode: remote is unsupported; use the remote CLI command");
   throw new Error("Job field mode must be local or remote");
 }
 

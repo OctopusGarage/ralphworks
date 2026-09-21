@@ -46,12 +46,14 @@ stateDiagram-v2
     Running --> Running: progress and another iteration is allowed
     Running --> Completed: completion requested and checks pass
     Running --> Blocked: agent error, HEAD mutation, or no progress
+    Running --> Cancelled: local interrupt
     Running --> MaxIterations: iteration limit reached
     Running --> TimedOut: run or check deadline reached
     Running --> BudgetExhausted: reported cost exceeds budget
     Running --> Failed: orchestration or Git failure
     Completed --> [*]
     Blocked --> [*]
+    Cancelled --> [*]
     MaxIterations --> [*]
     TimedOut --> [*]
     BudgetExhausted --> [*]
@@ -66,7 +68,7 @@ RalphWorks injects a completion instruction into the Pi prompt. The configured c
 
 Checks run after the agent step. When no checks are configured, the check set is considered satisfied. With checks, all commands must exit successfully during the same iteration. A failed check allows another iteration while limits permit; a bounded excerpt of its output is carried into the next Pi session.
 
-Unattended Docker and GitHub Actions runs default to 30 minutes and $3 unless the job or CLI supplies a value. CLI Pi iterations run in a child process; at the deadline, RalphWorks terminates its process group before releasing the lock. Custom in-process runners must honor abort signals. Cost is known after Pi reports the iteration, so a single iteration can cross the configured ceiling.
+Every run defaults to a 30-minute wall-clock limit unless the job or CLI supplies a value. Unattended Docker and GitHub Actions runs also default to $3. CLI Pi iterations run in a child process; at the deadline or on a local interrupt, RalphWorks terminates its process group before releasing the lock. Active checks are stopped in the same way. Custom in-process runners must honor abort signals. Cost is known after Pi reports the iteration, so a single iteration can cross the configured ceiling.
 
 ## Git ownership
 
@@ -117,6 +119,6 @@ Remote and clone modes deliberately return a patch. They do not mutate the calle
 
 - The YAML parser supports a small reviewed subset rather than general YAML.
 - Local runs start a new process and reuse saved progress for the same task. Remote runs can restore a prior run's patch and progress on the same unchanged branch with `--resume-from`.
-- YAML `mode: remote` is reserved and blocked; GitHub delivery uses the separate `remote` command.
+- YAML `mode: remote` is rejected during parsing; GitHub delivery uses the separate `remote` command.
 - There is no automatic branch, push, pull request, merge, deployment, dashboard, or general command policy engine.
 - Docker is an execution boundary, not a trust boundary for arbitrary job and check commands.

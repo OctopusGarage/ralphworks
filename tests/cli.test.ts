@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { execFile, spawn } from "node:child_process";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -39,6 +39,38 @@ test("CLI run accepts an explicit dry-run runner", async () => {
       return true;
     },
   );
+});
+
+test("CLI SIGINT cancels a running check and writes a terminal result", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
+  const jobPath = join(workspace, "job.yaml");
+  await writeJob(jobPath);
+  const check = `node -e "require('node:fs').writeFileSync('check-started', 'yes'); setTimeout(() => {}, 5000)"`;
+  const child = spawn("node", [CLI, "run", jobPath, "--runner", "dry-run", "--check", check], { cwd: workspace });
+  let stdout = "";
+  child.stdout.on("data", (chunk: Buffer) => (stdout += chunk.toString()));
+  const closed = new Promise<number | null>((resolveClose) => child.on("close", (code) => resolveClose(code)));
+  try {
+    let started = false;
+    for (let attempt = 0; attempt < 500; attempt += 1) {
+      started = await stat(join(workspace, "check-started")).then(
+        () => true,
+        () => false,
+      );
+      if (started) break;
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 10));
+    }
+    assert.equal(started, true, "check did not start");
+    child.kill("SIGINT");
+    assert.equal(await closed, 130);
+    assert.match(stdout, /RalphWorks run cancelled/);
+    const pointer = (await readFile(join(workspace, ".ralph", "current"), "utf8")).trim();
+    const result = JSON.parse(await readFile(join(workspace, ".ralph", pointer, "result.json"), "utf8"));
+    assert.equal(result.status, "cancelled");
+    await assert.rejects(stat(join(workspace, ".ralph", "run.lock")), { code: "ENOENT" });
+  } finally {
+    child.kill("SIGKILL");
+  }
 });
 
 test("CLI run rejects unknown runners", async () => {

@@ -46,6 +46,10 @@ test("YAML jobs reject empty checks", () => {
   assert.throws(() => parseJob("name: task\ntask: Do it\nchecks:\n  - \n"), /non-empty commands/);
 });
 
+test("YAML jobs reject the unsupported remote mode before execution", () => {
+  assert.throws(() => parseJob("name: task\ntask: Do it\nmode: remote\n"), /use the remote CLI command/);
+});
+
 test("YAML jobs use the same useful loop defaults as plain tasks", () => {
   const job = parseJob("name: task\ntask: Do it\n");
   assert.equal(job.completionPromise, "DONE");

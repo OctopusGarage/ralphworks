@@ -46,6 +46,12 @@ ralphworks run 'Add CSV export' --check 'npm test' --commit verified
 
 `--commit verified` requires a clean Git worktree and at least one check. The agent does not create commits itself. For reusable checks and limits, see the [YAML job format](docs/USAGE.md#structured-yaml-jobs).
 
+For unattended work, start on a dedicated branch and give the loop an independent acceptance check:
+
+```bash
+ralphworks run ./docs/feature.md --check 'npm test' --commit verified --max-minutes 30 --max-cost-usd 3
+```
+
 ## Choose where it runs
 
 | Mode | Command | Result |

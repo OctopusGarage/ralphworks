@@ -109,11 +109,20 @@ async function main(argv: string[]): Promise<number> {
         if (result.exitCode !== 0 && result.stderr) console.error(result.stderr.trimEnd());
         return result.exitCode === 0 ? 0 : 1;
       }
+      const interrupt = new AbortController();
+      const onSigint = () => interrupt.abort("SIGINT");
+      const onSigterm = () => interrupt.abort("SIGTERM");
+      process.once("SIGINT", onSigint);
+      process.once("SIGTERM", onSigterm);
       const result = await runLocalJob(target, {
         checksOverride: runArgs.checks,
         contexts: runArgs.contexts,
         jobOverrides: runArgs.jobOverrides,
+        signal: interrupt.signal,
         runner: runArgs.runner === "pi" ? new PiProcessRunner({ modelRef: runArgs.modelRef, piAgentDir: runArgs.piAgentDir }) : undefined,
+      }).finally(() => {
+        process.removeListener("SIGINT", onSigint);
+        process.removeListener("SIGTERM", onSigterm);
       });
       console.log(`RalphWorks run ${result.status}: ${result.jobName}`);
       console.log(`runner=${runArgs.runner}`);
@@ -128,7 +137,7 @@ async function main(argv: string[]): Promise<number> {
         const detail = (failedCheck.stderr || failedCheck.stdout).trim().slice(-1000);
         if (detail) console.log(`checkOutput=${detail}`);
       }
-      return result.status === "completed" ? 0 : 1;
+      return result.status === "completed" ? 0 : result.status === "cancelled" ? (interrupt.signal.reason === "SIGTERM" ? 143 : 130) : 1;
     }
     case "status":
       {

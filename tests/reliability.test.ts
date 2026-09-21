@@ -151,6 +151,74 @@ test("unattended defaults fill only missing time and cost budgets", async () => 
   assert.deepEqual(limits, { maxMinutes: 4, maxCostUsd: 1 });
 });
 
+test("host runs have a default wall clock limit", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
+  let limit: number | undefined;
+  await runLocalJob(jobPath, {
+    cwd,
+    unattended: false,
+    runner: {
+      async runIteration(input) {
+        limit = input.job.maxMinutes;
+        return { status: "continue", summary: "done", output: "<promise>DONE</promise>" };
+      },
+    },
+  });
+  assert.equal(limit, 30);
+});
+
+test("interrupting an iteration records cancellation and releases the lock", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
+  const interrupt = new AbortController();
+  const running = runLocalJob(jobPath, {
+    cwd,
+    signal: interrupt.signal,
+    runner: {
+      async runIteration(input) {
+        await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }));
+        return { status: "continue", summary: "stopped" };
+      },
+    },
+  });
+  setTimeout(() => interrupt.abort("SIGINT"), 50);
+  const result = await running;
+  assert.equal(result.status, "cancelled");
+  assert.equal(result.reason, "run interrupted by SIGINT");
+  assert.equal(JSON.parse(await readFile(result.resultPath, "utf8")).status, "cancelled");
+  await assert.rejects(stat(join(cwd, ".ralph", "run.lock")), { code: "ENOENT" });
+});
+
+test("interrupting a check stops its descendants before releasing the lock", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1", "checks:", "  - sh -c 'touch check-started; sleep 0.3; touch late-marker'"]);
+  const interrupt = new AbortController();
+  const running = runLocalJob(jobPath, {
+    cwd,
+    signal: interrupt.signal,
+    runner: {
+      async runIteration() {
+        return { status: "continue", summary: "check now" };
+      },
+    },
+  });
+  let started = false;
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    started = await stat(join(cwd, "check-started")).then(
+      () => true,
+      () => false,
+    );
+    if (started) break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(started, true, "check did not start");
+  interrupt.abort("SIGTERM");
+  const result = await running;
+  assert.equal(result.status, "cancelled");
+  assert.equal(result.checks[0]?.cancelled, true);
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  await assert.rejects(stat(join(cwd, "late-marker")), { code: "ENOENT" });
+  await assert.rejects(stat(join(cwd, ".ralph", "run.lock")), { code: "ENOENT" });
+});
+
 test("wall clock budget aborts a running iteration and persists timeout", async () => {
   const { cwd, jobPath } = await fixture(["max_iterations: 2", "max_minutes: 0.001", "checks:", '  - node -e "process.exit(0)"']);
   const result = await runLocalJob(jobPath, {
@@ -236,20 +304,6 @@ test("timed out checks stop descendant processes", async () => {
   assert.equal(result.status, "timed_out");
   await new Promise((resolve) => setTimeout(resolve, 450));
   await assert.rejects(stat(join(cwd, "late-marker")), { code: "ENOENT" });
-});
-
-test("remote job mode refuses to run locally", async () => {
-  const { cwd, jobPath } = await fixture(["mode: remote", "max_iterations: 1"]);
-  const result = await runLocalJob(jobPath, {
-    cwd,
-    runner: {
-      async runIteration() {
-        throw new Error("must not run");
-      },
-    },
-  });
-  assert.equal(result.status, "blocked");
-  assert.match(result.reason ?? "", /remote job mode/);
 });
 
 test("two unchanged Git iterations stop as no progress", async () => {
