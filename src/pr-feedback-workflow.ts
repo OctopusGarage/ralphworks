@@ -6,7 +6,7 @@ export const PR_FEEDBACK_WORKFLOW = [
   "    types: [labeled]",
   "",
   "concurrency:",
-  "  group: ralphworks-pr-${{ github.event.pull_request.number }}",
+  "  group: ralphworks-feedback-${{ github.event.pull_request.number }}",
   "  cancel-in-progress: false",
   "",
   "jobs:",

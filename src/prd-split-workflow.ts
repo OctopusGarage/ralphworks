@@ -6,7 +6,7 @@ export const PRD_SPLIT_WORKFLOW = [
   "    types: [labeled]",
   "",
   "concurrency:",
-  "  group: ralphworks-prd-${{ github.event.issue.number }}",
+  "  group: ralphworks-prd-split-${{ github.event.issue.number }}",
   "  cancel-in-progress: false",
   "",
   "jobs:",
