@@ -49,6 +49,8 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(issueAction, /RALPHWORKS_ISSUE_CHECK is required/);
   assert.match(issueAction, /contents: read/);
   assert.match(issueAction, /RALPHWORKS_ISSUE_TOKEN/);
+  assert.match(issueAction, /GH_REPO: \$\{\{ github\.repository \}\}/);
+  assert.match(issueAction, /if: always\(\) && steps\.ralph\.outcome != 'skipped'/);
   assert.match(issueAction, /\.status == "completed"/);
   assert.match(issueAction, /git apply --check/);
   assert.match(issueAction, /gh pr create --draft/);
