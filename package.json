@@ -1,6 +1,6 @@
 {
   "name": "ralphworks",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Bounded Ralph loop orchestrator powered by Pi.",
   "repository": {
     "type": "git",

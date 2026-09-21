@@ -74,6 +74,25 @@ test("runLocalJob persists runner events between iteration boundaries", async ()
   assert.deepEqual(events[2].details, { value: 42 });
 });
 
+test("runLocalJob bounds oversized runner event details", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
+  const jobPath = join(workspace, "job.yaml");
+  await writeFile(jobPath, "name: bounded-events\ntask: Record events.\nmax_iterations: 1\n");
+  const result = await runLocalJob(jobPath, {
+    cwd: workspace,
+    runner: {
+      async runIteration() {
+        return { status: "continue", summary: "done", events: [{ type: "tool", details: { data: "x".repeat(10000) } }] };
+      },
+    },
+  });
+  const events = (await readFile(result.eventsPath, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(events[2].details, { omitted: "event details exceeded 2 KiB" });
+});
+
 test("runLocalJob executes configured checks after each iteration", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
   const jobPath = join(workspace, "job.yaml");

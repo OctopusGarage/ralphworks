@@ -3,6 +3,7 @@
 [![CI](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml)
 [![Gitleaks](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml)
 [![Release](https://github.com/OctopusGarage/ralphworks/actions/workflows/release.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/releases/latest)
+[![Smoke](https://github.com/OctopusGarage/ralphworks/actions/workflows/smoke.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/smoke.yml)
 ![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)
 [![MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
@@ -10,20 +11,19 @@ A bounded [Ralph loop](https://www.aihero.dev/getting-started-with-ralph) for co
 
 ## Get started
 
-Requires Node.js 24 and pnpm 10. Install [Pi](https://pi.dev), run `pi`, and configure a model with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
+Requires Node.js 24. Install [Pi](https://pi.dev) and the [v0.1.3 release](https://github.com/OctopusGarage/ralphworks/releases/tag/v0.1.3), then configure a model in Pi with `/login` and `/model`. RalphWorks uses Pi's existing model and credentials; select another configured model with `--model provider/model-id`.
 
 ```bash
-npm install -g @earendil-works/pi-coding-agent
+npm install -g @earendil-works/pi-coding-agent \
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.3/ralphworks-0.1.3.tgz
 pi # configure /login and /model, then exit
-git clone https://github.com/OctopusGarage/ralphworks.git
-cd ralphworks
-pnpm install --frozen-lockfile && pnpm build && pnpm link --global
 
 cd /path/to/your/repo
 ralphworks run 'Fix the login error and add a regression test' --check 'npm test'
 ```
 
 Run the command from the repository you want to change. Edits stay in that worktree. `--check` runs after every iteration; a failing check sends its output into the next iteration. Omit it for exploratory work, but use checks that cover the acceptance criteria for unattended tasks.
+Without checks, `completed` means the agent reported completion; it does not independently verify the result.
 
 ## The loop
 

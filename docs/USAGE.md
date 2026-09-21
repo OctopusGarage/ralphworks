@@ -4,7 +4,16 @@ This guide describes the current behavior of RalphWorks. RalphWorks is a bounded
 
 ## Installation and command entry point
 
-RalphWorks requires Node.js 24 and pnpm 10.13.1.
+RalphWorks requires Node.js 24. Install the release package and configure Pi:
+
+```bash
+npm install -g @earendil-works/pi-coding-agent \
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.3/ralphworks-0.1.3.tgz
+pi # configure /login and /model, then exit
+ralphworks --help
+```
+
+To build from source, use pnpm 10.13.1:
 
 ```bash
 git clone https://github.com/OctopusGarage/ralphworks.git
@@ -119,7 +128,7 @@ CLI options override the matching job values: `--max-iterations`, `--max-minutes
 
 Each iteration creates a new Pi session and supplies the task plus a bounded view of durable progress from earlier iterations. The full progress history stays on disk. For tasks with several items, the agent chooses the highest-priority unfinished item. After the agent returns, RalphWorks records model events and cost, runs every configured check, updates progress, and decides whether to continue. Failed check output is included in the next iteration's progress, capped at 2,000 characters per failed check.
 
-A completion tag requests completion. A configured check failure prevents completion even when the tag is present. Without independent checks, the tag is sufficient. Two consecutive Git iterations without worktree progress stop as `blocked`.
+A completion tag requests completion. A configured check failure prevents completion even when the tag is present. Without independent checks, the tag is sufficient; it is an agent report, not independent proof that the task is correct. Use checks covering the essential acceptance criteria for unattended work. Two consecutive Git iterations without worktree progress stop as `blocked`.
 
 Terminal states are:
 
@@ -132,6 +141,8 @@ Terminal states are:
 - `failed`: orchestration or Git processing failed.
 
 Only `completed` returns CLI exit code zero. The local CLI returns 130 after Ctrl+C and 143 after SIGTERM. It runs each Pi iteration in a child process; cancellation or a wall clock timeout terminates that process group before releasing the worktree lock. Cleanup can finish shortly after the configured limit. Embedders using a custom in-process runner must make it respond to abort signals.
+
+Run records omit raw assistant text deltas. The runner keeps at most 1,000 structural events per iteration, event details over 2 KiB are omitted, and check output is limited to the last 8,192 characters per stream. Values of environment variables named like `*_API_KEY`, `*_TOKEN`, or `*_SECRET` are masked in recorded text when they are at least eight characters long. This cannot detect credentials read from arbitrary files or secrets transformed by a command. Review `.ralph/` and remote artifacts before sharing them; keep task and check output free of secrets.
 
 ## Checks and Git policy
 
@@ -210,7 +221,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.2` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.3` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
@@ -245,7 +256,7 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 
 ## Repeatable smoke checks
 
-The repository's [Smoke workflow](../.github/workflows/smoke.yml) runs weekly and on manual dispatch. It starts the real CLI and Docker executors with a dry-run agent, so it needs no model credentials. Run the same infrastructure checks locally with `RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host`, `docker`, or `docker-clone`; the clone mode uses the public RalphWorks `main` branch by default.
+The repository's [Smoke workflow](../.github/workflows/smoke.yml) runs for every pull request, weekly, and on manual dispatch. It starts the real CLI and Docker executors with a dry-run agent, so it needs no model credentials. It is a required PR check. Run the same infrastructure checks locally with `RALPHWORKS_SMOKE_RUNNER=dry-run scripts/smoke.sh host`, `docker`, or `docker-clone`; the clone mode uses the public RalphWorks `main` branch by default.
 
 To exercise a real Pi model, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scripts/smoke.sh host` and then `scripts/smoke.sh docker`. The script creates a temporary Git repository, requires the agent to write an exact file, checks that file independently, verifies RalphWorks created a commit, and removes the fixture afterward. For clone mode, set `RALPHWORKS_SMOKE_REF` to a pushed RalphWorks branch containing `scripts/smoke-task.md`.
 

@@ -4,6 +4,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from "node:pat
 
 import { commitVerifiedChanges, currentGitHead, verifyCleanGitWorkspace, workspaceFingerprint } from "./git-transaction.ts";
 import { defaultProgressFile, loadJob, type RalphJob } from "./job.ts";
+import { redactSensitiveValues } from "./redact.ts";
 import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
 import { type AgentRunner, DryRunRunner, type IterationResult } from "./runner.ts";
@@ -145,10 +146,17 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         } finally {
           options.signal?.removeEventListener("abort", abortIteration);
         }
-        for (const runnerEvent of iterationResult.events ?? []) {
+        const runnerEvents = iterationResult.events ?? [];
+        for (const runnerEvent of runnerEvents.slice(0, 1000)) {
           await appendEvent(eventsPath, { ...event(runnerEvent.type, job, iteration), details: runnerEvent.details });
         }
-        lastSummary = iterationResult.summary.slice(0, 600);
+        if (runnerEvents.length > 1000) {
+          await appendEvent(eventsPath, {
+            ...event("runner_events_omitted", job, iteration),
+            details: { count: runnerEvents.length - 1000 },
+          });
+        }
+        lastSummary = redactSensitiveValues(iterationResult.summary).slice(0, 600);
         costUsd += iterationResult.costUsd ?? 0;
         if (options.signal?.aborted) {
           status = "cancelled";
@@ -237,6 +245,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
     await appendEvent(eventsPath, { ...event("run_failed", job), status, summary: reason }).catch(() => undefined);
   }
 
+  if (reason) reason = redactSensitiveValues(reason);
   const result: RalphRunResult = {
     jobName: job.name,
     status,
@@ -260,7 +269,7 @@ async function appendProgress(path: string, iteration: number, summary: string, 
   const failures = checks
     .filter((check) => check.exitCode !== 0 || check.timedOut)
     .map((check) => {
-      const output = `${check.stdout}\n${check.stderr}`.trim().slice(-2000) || "(no output)";
+      const output = redactSensitiveValues(`${check.stdout}\n${check.stderr}`).trim().slice(-2000) || "(no output)";
       return `  - ${check.command}${check.timedOut ? " (timed out)" : ""}:\n${output
         .split("\n")
         .map((line) => `    ${line}`)
@@ -268,7 +277,7 @@ async function appendProgress(path: string, iteration: number, summary: string, 
     });
   await writeFile(
     path,
-    `\n- Iteration ${iteration}: ${status}; ${summary}; checks: ${checkText}\n${failures.length ? `  Check failures:\n${failures.join("\n")}\n` : ""}`,
+    `\n- Iteration ${iteration}: ${status}; ${redactSensitiveValues(summary)}; checks: ${checkText}\n${failures.length ? `  Check failures:\n${failures.join("\n")}\n` : ""}`,
     { flag: "a" },
   );
 }
@@ -322,7 +331,14 @@ async function ensureProgressFile(cwd: string, job: RalphJob): Promise<void> {
 }
 
 async function appendEvent(eventsPath: string, item: RalphEvent): Promise<void> {
-  await writeFile(eventsPath, JSON.stringify(item) + "\n", { encoding: "utf8", flag: "a" });
+  const bounded: RalphEvent = {
+    ...item,
+    ...(item.summary ? { summary: item.summary.slice(0, 1000) } : {}),
+    ...(item.details && Buffer.byteLength(JSON.stringify(item.details)) > 2048
+      ? { details: { omitted: "event details exceeded 2 KiB" } }
+      : {}),
+  };
+  await writeFile(eventsPath, redactSensitiveValues(JSON.stringify(bounded)) + "\n", { encoding: "utf8", flag: "a" });
 }
 
 function event(type: string, job: RalphJob, iteration?: number): RalphEvent {
@@ -447,8 +463,8 @@ function runCheck(command: string, cwd: string, timeoutMs: number, signal?: Abor
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) abort();
     const capture = (chunk: Buffer, stream: "stdout" | "stderr") => {
-      if (stream === "stdout") stdout = (stdout + chunk.toString()).slice(0, 1024 * 1024);
-      else stderr = (stderr + chunk.toString()).slice(0, 1024 * 1024);
+      if (stream === "stdout") stdout = (stdout + chunk.toString()).slice(-8192);
+      else stderr = (stderr + chunk.toString()).slice(-8192);
     };
     child.stdout.on("data", (chunk: Buffer) => capture(chunk, "stdout"));
     child.stderr.on("data", (chunk: Buffer) => capture(chunk, "stderr"));
@@ -464,8 +480,8 @@ function runCheck(command: string, cwd: string, timeoutMs: number, signal?: Abor
       resolveCheck({
         command,
         exitCode: code ?? 1,
-        stdout,
-        stderr: error ? `${stderr}\n${error.message}`.trim() : stderr,
+        stdout: redactSensitiveValues(stdout),
+        stderr: redactSensitiveValues(error ? `${stderr}\n${error.message}`.trim() : stderr),
         ...(timedOut ? { timedOut: true } : {}),
         ...(cancelled ? { cancelled: true } : {}),
       });
