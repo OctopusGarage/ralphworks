@@ -17,6 +17,7 @@
   "files": [
     "dist/",
     "docs/ARCHITECTURE.md",
+    "docs/ISSUE_WORKFLOWS.md",
     "docs/USAGE.md",
     "docs/assets/ralphworks-overview.svg"
   ],
