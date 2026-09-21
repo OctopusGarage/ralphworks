@@ -39,10 +39,10 @@
     "@earendil-works/pi-coding-agent": "^0.85.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.13",
+    "@biomejs/biome": "2.5.14",
     "@types/node": "^24.0.0",
     "husky": "9.1.7",
-    "knip": "6.35.1",
+    "knip": "6.37.0",
     "typescript": "^5.7.0"
   },
   "engines": {
