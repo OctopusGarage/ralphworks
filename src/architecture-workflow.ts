@@ -21,7 +21,7 @@ export const ARCHITECTURE_WORKFLOW = [
   "      GH_TOKEN: ${{ github.token }}",
   "      GH_REPO: ${{ github.repository }}",
   "      RALPHWORKS_MODEL: ${{ vars.RALPHWORKS_MODEL }}",
-  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.1.0' }}",
+  "      RALPHWORKS_REF: ${{ vars.RALPHWORKS_REF || 'v0.2.0' }}",
   "      RALPHWORKS_SOURCE_REPO: ${{ vars.RALPHWORKS_SOURCE_REPO || 'OctopusGarage/ralphworks' }}",
   "    steps:",
   "      - name: Check backlog",

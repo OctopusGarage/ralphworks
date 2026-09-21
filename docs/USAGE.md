@@ -8,7 +8,7 @@ RalphWorks requires Node.js 24. Install the release package and configure Pi:
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.0/ralphworks-0.1.0.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.2.0/ralphworks-0.2.0.tgz
 pi # configure /login and /model, then exit
 ralphworks --help
 ```
@@ -258,7 +258,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.0` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.2.0` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
@@ -285,6 +285,8 @@ For another remote run of an unfinished task on the same unchanged branch, use `
 ### Issue and PR workflows
 
 `ralphworks init` also creates eight label-driven workflows for issue implementation, PRD sub-issues, dependency queues, PR review and feedback, branch updates, and architecture proposals. They are separate from the `remote` command: successful implementation runs can push a branch and open or update a PR. Maintainers review and merge those PRs.
+
+The queue workflow paginates through all open queued issues. If PRD splitting creates some sub-issues before delivery fails, re-run the failed job from the same Actions run to finish that proposal without duplicating matching sub-issues. See the [issue and PR workflow guide](ISSUE_WORKFLOWS.md#limits-failures-and-verification) for recovery steps.
 
 The [issue and PR workflow guide](ISSUE_WORKFLOWS.md) covers installation, credentials, labels, each path, and retries. Existing workflow files are not overwritten by `init`.
 
