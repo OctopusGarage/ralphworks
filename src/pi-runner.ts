@@ -1,6 +1,7 @@
 import { join } from "node:path";
 
 import type { RalphJob } from "./job.ts";
+import { redactSensitiveValues } from "./redact.ts";
 import type { ModelRef } from "./run-args.ts";
 import type { AgentRunner, IterationResult, RunnerEvent } from "./runner.ts";
 
@@ -60,7 +61,7 @@ export class PiSdkRunner implements AgentRunner {
       ...(this.#piAgentDir ? { piAgentDir: this.#piAgentDir } : {}),
     });
     const events: RunnerEvent[] = [];
-    const output: string[] = [];
+    let output = "";
     let currentAssistantText = "";
     let lastAssistantText = "";
     const assistantErrors: string[] = [];
@@ -70,22 +71,22 @@ export class PiSdkRunner implements AgentRunner {
     input.signal?.addEventListener("abort", abort, { once: true });
     const unsubscribe = session.subscribe((event) => {
       const normalized = normalizePiEvent(event);
-      if (normalized) {
+      if (normalized && events.length < 1000) {
         events.push(normalized);
       }
       if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
         const delta = event.assistantMessageEvent.delta ?? "";
-        output.push(delta);
-        currentAssistantText += delta;
+        output = (output + delta).slice(-4096);
+        currentAssistantText = (currentAssistantText + delta).slice(-4096);
       }
       if (event.type === "message_end" && event.message?.role === "assistant") {
         if (currentAssistantText.trim()) lastAssistantText = currentAssistantText;
         currentAssistantText = "";
       }
       if (event.type === "message_end" && event.message?.role === "assistant" && event.message.stopReason === "error") {
-        const errorMessage = event.message.errorMessage ?? "Pi assistant stopped with an error";
+        const errorMessage = redactSensitiveValues(event.message.errorMessage ?? "Pi assistant stopped with an error");
         assistantErrors.push(errorMessage);
-        output.push(errorMessage);
+        output = (output + errorMessage).slice(-4096);
       }
     });
 
@@ -103,8 +104,8 @@ export class PiSdkRunner implements AgentRunner {
       status: blocked ? "blocked" : "continue",
       summary: blocked
         ? `Pi iteration ${input.iteration} blocked: ${assistantErrors.at(-1)}`
-        : summarizeAssistant(lastAssistantText || currentAssistantText, input.iteration),
-      output: output.join(""),
+        : redactSensitiveValues(summarizeAssistant(lastAssistantText || currentAssistantText, input.iteration)),
+      output: redactSensitiveValues(output),
       events,
       costUsd: session.getSessionStats?.().cost,
     };
@@ -149,12 +150,6 @@ function summarizeAssistant(message: string, iteration: number): string {
 }
 
 function normalizePiEvent(event: PiSessionEvent): RunnerEvent | undefined {
-  if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-    return {
-      type: "pi_text_delta",
-      details: { delta: event.assistantMessageEvent.delta ?? "" },
-    };
-  }
   if (event.type === "tool_execution_start") {
     return {
       type: "pi_tool_start",
@@ -173,7 +168,7 @@ function normalizePiEvent(event: PiSessionEvent): RunnerEvent | undefined {
       details: {
         provider: event.message.provider ?? "unknown",
         model: event.message.model ?? "unknown",
-        errorMessage: event.message.errorMessage ?? "Pi assistant stopped with an error",
+        errorMessage: redactSensitiveValues(event.message.errorMessage ?? "Pi assistant stopped with an error").slice(0, 500),
       },
     };
   }

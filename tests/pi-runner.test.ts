@@ -57,7 +57,7 @@ test("PiSdkRunner builds a Ralph prompt and normalizes Pi session events", async
   assert.equal(unsubscribed, true);
   assert.deepEqual(
     result.events?.map((event) => event.type),
-    ["pi_text_delta", "pi_tool_start", "pi_tool_end"],
+    ["pi_tool_start", "pi_tool_end"],
   );
 });
 
