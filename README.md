@@ -1,5 +1,10 @@
 # RalphWorks
 
+[![CI](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/ci.yml)
+[![Gitleaks](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/OctopusGarage/ralphworks/actions/workflows/gitleaks.yml)
+![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)
+[![MIT](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
+
 A bounded [Ralph loop](https://www.aihero.dev/getting-started-with-ralph) for coding tasks. Give it a goal; it runs [Pi](https://pi.dev) in fresh iterations, carries progress forward, checks the result, and stops when the task is done or a limit is reached.
 
 ## Get started
@@ -51,4 +56,4 @@ ralphworks run 'Add CSV export' --check 'npm test' --commit verified
 
 Docker requires the [sandbox image](docs/USAGE.md#docker-execution). Clone and GitHub Actions modes require the task and inputs on the selected branch; they never push generated code. For GitHub Actions, run `ralphworks init` in the target repository, commit the generated workflow, then configure `RALPHWORKS_MODEL` and a provider secret as described in the [remote setup guide](docs/USAGE.md#github-actions-execution). Continue an unfinished remote run with `--resume-from <run-id>` on the same unchanged branch.
 
-[Full usage and configuration](docs/USAGE.md) · [Architecture](docs/ARCHITECTURE.md) · [MIT license](LICENSE)
+[Full usage and configuration](docs/USAGE.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [License](LICENSE)

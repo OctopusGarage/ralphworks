@@ -19,7 +19,7 @@ export async function withRunLock<T>(cwd: string, run: () => Promise<T>): Promis
     if (Number.isInteger(pid) && pid > 0 && processIsAlive(pid)) {
       throw new Error("workspace is locked by another RalphWorks run");
     }
-    if (await readFile(ownerPath, "utf8").catch(() => "") !== staleOwner) {
+    if ((await readFile(ownerPath, "utf8").catch(() => "")) !== staleOwner) {
       throw new Error("workspace lock changed while checking its owner");
     }
     await rm(lockDir, { recursive: true });
@@ -32,7 +32,9 @@ export async function withRunLock<T>(cwd: string, run: () => Promise<T>): Promis
   }
   const owner = `${process.pid}:${randomUUID()}`;
   await writeFile(ownerPath, owner);
-  const heartbeat = setInterval(() => { void writeFile(ownerPath, owner).catch(() => undefined); }, 5_000);
+  const heartbeat = setInterval(() => {
+    void writeFile(ownerPath, owner).catch(() => undefined);
+  }, 5_000);
   heartbeat.unref();
   try {
     return await run();

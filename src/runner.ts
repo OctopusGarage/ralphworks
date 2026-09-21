@@ -18,7 +18,13 @@ export interface AgentRunner {
 }
 
 export class DryRunRunner implements AgentRunner {
-  async runIteration(input: { job: RalphJob; iteration: number; cwd: string; progress: string; signal: AbortSignal }): Promise<IterationResult> {
+  async runIteration(input: {
+    job: RalphJob;
+    iteration: number;
+    cwd: string;
+    progress: string;
+    signal: AbortSignal;
+  }): Promise<IterationResult> {
     return {
       status: "continue",
       summary: `Dry run iteration ${input.iteration} for ${input.job.name}`,

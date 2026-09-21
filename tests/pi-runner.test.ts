@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-import { PiSdkRunner, type PiSessionEvent } from "../src/pi-runner.ts";
 import type { RalphJob } from "../src/job.ts";
+import { PiSdkRunner, type PiSessionEvent } from "../src/pi-runner.ts";
 
 test("PiSdkRunner builds a Ralph prompt and normalizes Pi session events", async () => {
   const job: RalphJob = {
@@ -118,17 +117,35 @@ test("PiSdkRunner blocks when the Pi provider returns an assistant error", async
 
 test("PiSdkRunner uses the last assistant handoff without the completion marker", async () => {
   let listener: ((event: PiSessionEvent) => void) | undefined;
-  const runner = new PiSdkRunner({ createSession: async () => ({
-    subscribe: (next) => { listener = next; return () => {}; },
-    prompt: async () => {},
-    waitForIdle: async () => {
-      listener?.({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "Investigating." } });
-      listener?.({ type: "message_end", message: { role: "assistant" } });
-      listener?.({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "Updated src/app.ts; next run tests. <promise>DONE</promise>" } });
-      listener?.({ type: "message_end", message: { role: "assistant" } });
-    },
-  }) });
-  const job: RalphJob = { name: "handoff", task: "Update app", progressFile: ".ralph/progress.md", maxIterations: 1, mode: "local", checkTimeoutSeconds: 60, commit: "none", checks: [], completionPromise: "DONE" };
+  const runner = new PiSdkRunner({
+    createSession: async () => ({
+      subscribe: (next) => {
+        listener = next;
+        return () => {};
+      },
+      prompt: async () => {},
+      waitForIdle: async () => {
+        listener?.({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "Investigating." } });
+        listener?.({ type: "message_end", message: { role: "assistant" } });
+        listener?.({
+          type: "message_update",
+          assistantMessageEvent: { type: "text_delta", delta: "Updated src/app.ts; next run tests. <promise>DONE</promise>" },
+        });
+        listener?.({ type: "message_end", message: { role: "assistant" } });
+      },
+    }),
+  });
+  const job: RalphJob = {
+    name: "handoff",
+    task: "Update app",
+    progressFile: ".ralph/progress.md",
+    maxIterations: 1,
+    mode: "local",
+    checkTimeoutSeconds: 60,
+    commit: "none",
+    checks: [],
+    completionPromise: "DONE",
+  };
   const result = await runner.runIteration({ job, iteration: 1, cwd: process.cwd() });
   assert.equal(result.summary, "Updated src/app.ts; next run tests.");
   assert.match(result.output ?? "", /<promise>DONE<\/promise>$/);

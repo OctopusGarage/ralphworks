@@ -1,8 +1,8 @@
 import { join } from "node:path";
 
 import type { RalphJob } from "./job.ts";
-import type { AgentRunner, IterationResult, RunnerEvent } from "./runner.ts";
 import type { ModelRef } from "./run-args.ts";
+import type { AgentRunner, IterationResult, RunnerEvent } from "./runner.ts";
 
 export type PiSessionEvent = {
   type: string;
@@ -47,7 +47,13 @@ export class PiSdkRunner implements AgentRunner {
     this.#piAgentDir = options.piAgentDir;
   }
 
-  async runIteration(input: { job: RalphJob; iteration: number; cwd: string; progress?: string; signal?: AbortSignal }): Promise<IterationResult> {
+  async runIteration(input: {
+    job: RalphJob;
+    iteration: number;
+    cwd: string;
+    progress?: string;
+    signal?: AbortSignal;
+  }): Promise<IterationResult> {
     const session = await this.#createSession({
       cwd: input.cwd,
       ...(this.#modelRef ? { modelRef: this.#modelRef } : {}),
@@ -58,7 +64,9 @@ export class PiSdkRunner implements AgentRunner {
     let currentAssistantText = "";
     let lastAssistantText = "";
     const assistantErrors: string[] = [];
-    const abort = () => { void session.abort?.().catch(() => undefined); };
+    const abort = () => {
+      void session.abort?.().catch(() => undefined);
+    };
     input.signal?.addEventListener("abort", abort, { once: true });
     const unsubscribe = session.subscribe((event) => {
       const normalized = normalizePiEvent(event);
@@ -133,7 +141,10 @@ function buildRalphPrompt(job: RalphJob, iteration: number, progress: string): s
 }
 
 function summarizeAssistant(message: string, iteration: number): string {
-  const summary = message.replace(/<promise>[^<]*<\/promise>\s*$/u, "").replace(/\s+/gu, " ").trim();
+  const summary = message
+    .replace(/<promise>[^<]*<\/promise>\s*$/u, "")
+    .replace(/\s+/gu, " ")
+    .trim();
   return summary ? summary.slice(-600) : `Pi iteration ${iteration} finished without a text handoff`;
 }
 
@@ -169,11 +180,7 @@ function normalizePiEvent(event: PiSessionEvent): RunnerEvent | undefined {
   return undefined;
 }
 
-async function createDefaultPiSession(input: {
-  cwd: string;
-  modelRef?: ModelRef;
-  piAgentDir?: string;
-}): Promise<PiSessionLike> {
+async function createDefaultPiSession(input: { cwd: string; modelRef?: ModelRef; piAgentDir?: string }): Promise<PiSessionLike> {
   const { createAgentSession, ModelRuntime, SessionManager } = await import("@earendil-works/pi-coding-agent");
   const modelRuntime =
     input.modelRef || input.piAgentDir

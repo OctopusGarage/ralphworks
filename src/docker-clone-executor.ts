@@ -22,7 +22,7 @@ type CommandResult = {
   stderr: string;
 };
 
-export type RunCommand = (file: string, args: string[]) => Promise<CommandResult>;
+type RunCommand = (file: string, args: string[]) => Promise<CommandResult>;
 
 export type DockerCloneOptions = {
   jobPath: string;
@@ -97,7 +97,7 @@ function dockerCloneScript(): string {
     "cd /home/agent/workspace",
     "git config user.name 'ralphworks[bot]'",
     "git config user.email '41898282+github-actions[bot]@users.noreply.github.com'",
-    'RALPH_BASE=$(git rev-parse HEAD)',
+    "RALPH_BASE=$(git rev-parse HEAD)",
     "corepack enable || true",
     "if [ -f pnpm-lock.yaml ]; then",
     "  pnpm install --frozen-lockfile",

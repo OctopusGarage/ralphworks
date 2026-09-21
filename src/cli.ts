@@ -113,10 +113,7 @@ async function main(argv: string[]): Promise<number> {
         checksOverride: runArgs.checks,
         contexts: runArgs.contexts,
         jobOverrides: runArgs.jobOverrides,
-        runner:
-          runArgs.runner === "pi"
-            ? new PiProcessRunner({ modelRef: runArgs.modelRef, piAgentDir: runArgs.piAgentDir })
-            : undefined,
+        runner: runArgs.runner === "pi" ? new PiProcessRunner({ modelRef: runArgs.modelRef, piAgentDir: runArgs.piAgentDir }) : undefined,
       });
       console.log(`RalphWorks run ${result.status}: ${result.jobName}`);
       console.log(`runner=${runArgs.runner}`);

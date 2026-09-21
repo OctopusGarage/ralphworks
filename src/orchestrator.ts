@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import { commitVerifiedChanges, currentGitHead, verifyCleanGitWorkspace, workspaceFingerprint } from "./git-transaction.ts";
@@ -8,7 +8,7 @@ import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
 import { type AgentRunner, DryRunRunner, type IterationResult } from "./runner.ts";
 
-export type RunStatus = "completed" | "blocked" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
+type RunStatus = "completed" | "blocked" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
 
 export type RalphRunResult = {
   jobName: string;
@@ -50,7 +50,7 @@ export async function runLocalJob(jobPath: string, options: RunOptions = {}): Pr
 
 async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: string): Promise<RalphRunResult> {
   const resolvedJobPath = resolvePath(cwd, jobPath);
-  const job = await loadJob(await exists(resolvedJobPath) ? resolvedJobPath : jobPath);
+  const job = await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath);
   if (options.checksOverride) job.checks = options.checksOverride;
   applyJobOverrides(job, options.jobOverrides);
   if (options.unattended ?? (process.env.RALPHWORKS_UNATTENDED === "1" || process.env.GITHUB_ACTIONS === "true")) {
@@ -118,9 +118,18 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         const controller = new AbortController();
         let iterationResult: IterationResult;
         try {
-          iterationResult = await runWithDeadline(runner, {
-            job, iteration, cwd, progress: await readProgressForPrompt(progressPath), signal: controller.signal,
-          }, controller, deadline);
+          iterationResult = await runWithDeadline(
+            runner,
+            {
+              job,
+              iteration,
+              cwd,
+              progress: await readProgressForPrompt(progressPath),
+              signal: controller.signal,
+            },
+            controller,
+            deadline,
+          );
         } catch (error) {
           status = controller.signal.aborted ? "timed_out" : "failed";
           reason = error instanceof Error ? error.message : String(error);
@@ -140,7 +149,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           status = "budget_exhausted";
           reason = "cost budget exhausted";
         }
-        if (!reason && headBefore && await currentGitHead(cwd) !== headBefore) {
+        if (!reason && headBefore && (await currentGitHead(cwd)) !== headBefore) {
           status = "blocked";
           reason = "agent changed Git HEAD; RalphWorks must own commits after checks";
         }
@@ -174,7 +183,8 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
             reason = `verified commit failed: ${error instanceof Error ? error.message : String(error)}`;
           }
         }
-        const completionRequested = iterationResult.status === "complete" || completionPromiseSatisfied(job.completionPromise, iterationResult.output ?? "");
+        const completionRequested =
+          iterationResult.status === "complete" || completionPromiseSatisfied(job.completionPromise, iterationResult.output ?? "");
         if (!reason && !completionRequested) {
           const currentFingerprint = await workspaceFingerprint(cwd);
           if (currentFingerprint && previousFingerprint === currentFingerprint) stalledIterations += 1;
@@ -187,14 +197,19 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         }
         const iterationStatus = reason ? status : completionRequested && checksPassed ? "complete" : "continue";
         await appendProgress(progressPath, iteration, iterationResult.summary, iterationStatus, checkResults);
-        await appendEvent(eventsPath, { ...event("iteration_finished", job, iteration), status: iterationStatus, summary: iterationResult.summary });
+        await appendEvent(eventsPath, {
+          ...event("iteration_finished", job, iteration),
+          status: iterationStatus,
+          summary: iterationResult.summary,
+        });
         if (reason) break;
         if (iterationStatus === "complete") {
           status = "completed";
           break;
         }
       }
-      if (status === "max_iterations" && !reason) reason = `iteration limit reached after ${iterations} ${iterations === 1 ? "iteration" : "iterations"}`;
+      if (status === "max_iterations" && !reason)
+        reason = `iteration limit reached after ${iterations} ${iterations === 1 ? "iteration" : "iterations"}`;
     }
   } catch (error) {
     status = "failed";
@@ -222,11 +237,20 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
 
 async function appendProgress(path: string, iteration: number, summary: string, status: string, checks: CheckResult[]): Promise<void> {
   const checkText = checks.length ? checks.map((check) => `${check.command}: ${check.exitCode}`).join("; ") : "none";
-  const failures = checks.filter((check) => check.exitCode !== 0 || check.timedOut).map((check) => {
-    const output = `${check.stdout}\n${check.stderr}`.trim().slice(-2000) || "(no output)";
-    return `  - ${check.command}${check.timedOut ? " (timed out)" : ""}:\n${output.split("\n").map((line) => `    ${line}`).join("\n")}`;
-  });
-  await writeFile(path, `\n- Iteration ${iteration}: ${status}; ${summary}; checks: ${checkText}\n${failures.length ? `  Check failures:\n${failures.join("\n")}\n` : ""}`, { flag: "a" });
+  const failures = checks
+    .filter((check) => check.exitCode !== 0 || check.timedOut)
+    .map((check) => {
+      const output = `${check.stdout}\n${check.stderr}`.trim().slice(-2000) || "(no output)";
+      return `  - ${check.command}${check.timedOut ? " (timed out)" : ""}:\n${output
+        .split("\n")
+        .map((line) => `    ${line}`)
+        .join("\n")}`;
+    });
+  await writeFile(
+    path,
+    `\n- Iteration ${iteration}: ${status}; ${summary}; checks: ${checkText}\n${failures.length ? `  Check failures:\n${failures.join("\n")}\n` : ""}`,
+    { flag: "a" },
+  );
 }
 
 export async function readProgressForPrompt(path: string, maxCharacters = 12_000): Promise<string> {
@@ -307,7 +331,10 @@ function isNotFound(error: unknown): boolean {
 }
 
 async function exists(path: string): Promise<boolean> {
-  return stat(path).then(() => true, (error) => isNotFound(error) ? false : Promise.reject(error));
+  return stat(path).then(
+    () => true,
+    (error) => (isNotFound(error) ? false : Promise.reject(error)),
+  );
 }
 
 async function loadContexts(cwd: string, sources: string[]): Promise<string> {
@@ -391,13 +418,21 @@ function runCheck(command: string, cwd: string, timeoutMs: number): Promise<Chec
     };
     child.stdout.on("data", (chunk: Buffer) => capture(chunk, "stdout"));
     child.stderr.on("data", (chunk: Buffer) => capture(chunk, "stderr"));
-    child.on("error", (cause) => { error = cause; });
+    child.on("error", (cause) => {
+      error = cause;
+    });
     child.on("close", (code) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       if (killTimer) clearTimeout(killTimer);
-      resolveCheck({ command, exitCode: code ?? 1, stdout, stderr: error ? `${stderr}\n${error.message}`.trim() : stderr, ...(timedOut ? { timedOut: true } : {}) });
+      resolveCheck({
+        command,
+        exitCode: code ?? 1,
+        stdout,
+        stderr: error ? `${stderr}\n${error.message}`.trim() : stderr,
+        ...(timedOut ? { timedOut: true } : {}),
+      });
     });
   });
 }

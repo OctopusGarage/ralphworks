@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 
 export type RalphJob = {
@@ -18,7 +18,11 @@ export type RalphJob = {
 };
 
 export function defaultProgressFile(name: string, task: string): string {
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "task";
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "task";
   const identity = createHash("sha256").update(task).digest("hex").slice(0, 12);
   return `.ralph/progress/${slug}-${identity}.md`;
 }
@@ -83,7 +87,20 @@ function isYamlJob(jobPath: string): boolean {
 }
 
 function parseSimpleYaml(text: string): Record<string, unknown> {
-  const allowed = new Set(["name", "task", "prompt_file", "progress_file", "completion_promise", "max_iterations", "max_minutes", "max_cost_usd", "mode", "checks", "check_timeout_seconds", "commit"]);
+  const allowed = new Set([
+    "name",
+    "task",
+    "prompt_file",
+    "progress_file",
+    "completion_promise",
+    "max_iterations",
+    "max_minutes",
+    "max_cost_usd",
+    "mode",
+    "checks",
+    "check_timeout_seconds",
+    "commit",
+  ]);
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   const out: Record<string, unknown> = {};
 
@@ -119,7 +136,7 @@ function parseSimpleYaml(text: string): Record<string, unknown> {
       const items: string[] = [];
       while (i + 1 < lines.length) {
         const next = lines[i + 1];
-        const item = /^  -\s*(.*)$/.exec(next);
+        const item = /^ {2}-\s*(.*)$/.exec(next);
         if (!item) {
           break;
         }
