@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 
 import { initProject } from "../src/init.ts";
@@ -32,8 +33,7 @@ try {
   } catch {
     const assetPlatform = process.arch === "x64" ? "amd64" : process.arch;
     const asset = `actionlint_${version}_${process.platform}_${assetPlatform}.tar.gz`;
-    const response = await fetch(`https://github.com/rhysd/actionlint/releases/download/v${version}/${asset}`);
-    if (!response.ok) throw new Error(`Failed to download ${asset}: HTTP ${response.status}`);
+    const response = await downloadAsset(`https://github.com/rhysd/actionlint/releases/download/v${version}/${asset}`, asset);
     const archive = Buffer.from(await response.arrayBuffer());
     const actual = createHash("sha256").update(archive).digest("hex");
     if (actual !== expected) throw new Error(`Checksum mismatch for ${asset}`);
@@ -71,4 +71,18 @@ try {
   console.log(`Validated ${paths.length} workflow files with actionlint v${version}`);
 } finally {
   await rm(generated, { recursive: true, force: true });
+}
+
+async function downloadAsset(url, asset) {
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      if (response.status < 500 || attempt === 4) throw new Error(`Failed to download ${asset}: HTTP ${response.status}`);
+    } catch (error) {
+      if (attempt === 4 || (error instanceof Error && error.message.startsWith(`Failed to download ${asset}:`))) throw error;
+    }
+    await delay(1000 * 2 ** (attempt - 1));
+  }
+  throw new Error(`Failed to download ${asset}`);
 }
