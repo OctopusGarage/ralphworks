@@ -66,6 +66,13 @@ test("initProject creates the workflow and ignores runtime state", async () => {
   assert.match(issueAction, /git apply --check/);
   assert.match(issueAction, /gh pr create --draft/);
   assert.match(issueAction, /if: failure\(\)/);
+  const architectureAction = await readFile(join(workspace, ".github", "workflows", "ralphworks-architecture.yml"), "utf8");
+  assert.match(architectureAction, /RALPHWORKS_ARCHITECTURE_SKILL_REF/);
+  assert.match(architectureAction, /mattpocock\/skills/);
+  assert.match(architectureAction, /rev-parse HEAD/);
+  assert.match(architectureAction, /improve-codebase-architecture\/SKILL\.md/);
+  assert.match(architectureAction, /architecture\.html/);
+  assert.match(architectureAction, /skill-source\.txt/);
   for (const file of [
     "ralphworks-issue.yml",
     "ralphworks-prd-split.yml",

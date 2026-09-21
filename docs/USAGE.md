@@ -38,6 +38,7 @@ ralphworks trace .ralph/runs/<run-directory>/events.jsonl
 ## Model and credential configuration
 
 RalphWorks delegates models, authentication, and custom providers to Pi. Configure credentials with Pi's `/login` command and select a model with `/model`. Pi uses `~/.pi/agent` by default; use `--pi-agent-dir` to select another directory.
+Pi discovers skills from its configured agent directory and trusted project skill directories. RalphWorks passes `--pi-agent-dir` to both Pi's model configuration and session resource discovery. For scheduled architecture skill use, see [Architecture proposals](ISSUE_WORKFLOWS.md#architecture-proposals).
 
 Model resolution follows this order:
 
