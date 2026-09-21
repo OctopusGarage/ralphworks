@@ -208,7 +208,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. A commit SHA pins the runner version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.1` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 
@@ -226,6 +226,8 @@ Inspect and apply a returned patch explicitly:
 git apply --check .ralph/remote/<run-id>/export/change.patch
 git apply .ralph/remote/<run-id>/export/change.patch
 ```
+
+For another remote run of an unfinished task, review and apply the downloaded patch on the task branch, commit and push that branch, then dispatch the task again. The updated source is available to the next run. Downloaded progress notes are for inspection only: GitHub Actions does not import them into later runs. Put essential carryover notes in the task file before pushing. Verify the patch against the intended branch before applying it.
 
 `remote` accepts only `--repo` and `--ref`; model selection and checks must come from Actions configuration and the pushed YAML job. The CLI preserves task terminal states such as `blocked` and `max_iterations`. If the task completes but a later workflow step fails, it reports `failed`.
 

@@ -123,6 +123,13 @@ async function main(argv: string[]): Promise<number> {
       console.log(`executor=${runArgs.executor}`);
       console.log(`iterations=${result.iterations}`);
       console.log(`runDir=${result.runDir}`);
+      if (result.reason) console.log(`reason=${result.reason}`);
+      const failedCheck = result.checks.findLast((check) => check.exitCode !== 0);
+      if (failedCheck) {
+        console.log(`failedCheck=${failedCheck.command} (exit ${failedCheck.exitCode})`);
+        const detail = (failedCheck.stderr || failedCheck.stdout).trim().slice(-1000);
+        if (detail) console.log(`checkOutput=${detail}`);
+      }
       return result.status === "completed" ? 0 : 1;
     }
     case "status":
@@ -132,6 +139,11 @@ async function main(argv: string[]): Promise<number> {
         console.log(`status=${status.status}`);
         console.log(`iterations=${status.iterations}`);
         console.log(`checks=${status.checks.total} total, ${status.checks.failed} failed`);
+        if (status.reason) console.log(`reason=${status.reason}`);
+        if (status.failedCheck) {
+          console.log(`failedCheck=${status.failedCheck.command} (exit ${status.failedCheck.exitCode})`);
+          if (status.failedCheck.detail) console.log(`checkOutput=${status.failedCheck.detail}`);
+        }
       }
       return 0;
     case "trace":

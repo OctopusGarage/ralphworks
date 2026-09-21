@@ -134,6 +134,19 @@ test("CLI status prints a compact run summary", async () => {
   assert.match(stdout, /checks=1 total, 0 failed/);
 });
 
+test("CLI status prints the reason and failed check", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
+  await writeFile(join(workspace, "result.json"), JSON.stringify({
+    jobName: "failed-job", status: "max_iterations", iterations: 3,
+    runDir: workspace, reason: "iteration limit reached",
+    checks: [{ command: "pnpm test", exitCode: 1, stderr: "assertion failed" }],
+  }));
+  const { stdout } = await execFileAsync("node", [CLI, "status", workspace], { cwd: workspace });
+  assert.match(stdout, /reason=iteration limit reached/);
+  assert.match(stdout, /failedCheck=pnpm test \(exit 1\)/);
+  assert.match(stdout, /checkOutput=assertion failed/);
+});
+
 test("CLI trace prints a compact event summary", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
   const eventsPath = join(workspace, "events.jsonl");
