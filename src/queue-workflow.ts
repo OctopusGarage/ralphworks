@@ -21,7 +21,7 @@ export const QUEUE_WORKFLOW = [
   '          [ -n "$GH_TOKEN" ] || exit 1',
   "          gh issue list --state open --label 'ralphworks:queued' --limit 100 --json number --jq '.[].number' | while read -r issue; do",
   '            [ -n "$issue" ] || continue',
-  '            blocked=$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue/dependencies/blocked_by" --jq length)',
+  '            blocked=$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue/dependencies/blocked_by" --jq \'[.[] | select(.state == "open")] | length\')',
   '            [ "$blocked" = 0 ] || continue',
   '            children=$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue/sub_issues" --jq length)',
   "            gh issue edit \"$issue\" --remove-label 'ralphworks:queued'",
