@@ -26,4 +26,4 @@ Avoid commit-message dumps, empty headings, placeholders, and claims based only 
 3. The [Release workflow](../.github/workflows/release.yml) verifies the package, requires the matching notes file, and publishes `ralphworks-X.Y.Z.tgz` with the standard title. A workflow rerun updates the same release and replaces its archive.
 4. Confirm the release title, notes, archive version, and download URL on GitHub.
 
-The [v0.1.1 notes](releases/v0.1.1.md) describe the current baseline release.
+The [v0.2.0 notes](releases/v0.2.0.md) describe the current release.

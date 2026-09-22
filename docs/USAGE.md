@@ -10,7 +10,7 @@ Maintainers can find the versioning and publication process in the [release guid
 
 ```bash
 npm install -g @earendil-works/pi-coding-agent \
-  https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.1/ralphworks-0.1.1.tgz
+  https://github.com/OctopusGarage/ralphworks/releases/download/v0.2.0/ralphworks-0.2.0.tgz
 pi # configure /login and /model, then exit
 ralphworks --help
 ```
@@ -262,7 +262,7 @@ Configure the target GitHub repository with:
 - Secret `RALPHWORKS_REPO_TOKEN`, with read access when the selected source repository is private. Public source repositories need no token.
 - The selected Pi provider's credential secret. Set variable `RALPHWORKS_AUTH_SECRET` to that secret's name so the workflow exports it to Pi. The built-in Anthropic, OpenAI, NVIDIA, and Z.AI secret names remain available without the variable.
 - Variable `RALPHWORKS_MODEL`, formatted as `provider/model-id`.
-- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.1.1` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
+- Optional variable `RALPHWORKS_REF`, set to a branch, tag, or commit SHA in the RalphWorks repository. The generated workflow defaults to the `v0.2.0` release tag. Set this variable for a fork or another version; the resolved commit is saved in the result artifact.
 
 The local `gh` account must be able to dispatch Actions in the target repository.
 

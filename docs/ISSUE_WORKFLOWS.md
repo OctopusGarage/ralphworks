@@ -6,10 +6,10 @@ This guide installs RalphWorks' label-driven GitHub Actions workflows in another
 
 The target must have GitHub Issues, Pull Requests, and Actions enabled. The workflows run on GitHub-hosted Ubuntu runners with Node.js 24 and pnpm 10.13.1. Project dependencies are installed with pnpm, npm, or Yarn when the corresponding lockfile exists. Make sure the repository's own test and build commands run on Ubuntu.
 
-Install RalphWorks v0.1.1 or later, then initialize the target repository:
+Install RalphWorks v0.2.0 or later, then initialize the target repository:
 
 ```bash
-npm install -g https://github.com/OctopusGarage/ralphworks/releases/download/v0.1.1/ralphworks-0.1.1.tgz
+npm install -g https://github.com/OctopusGarage/ralphworks/releases/download/v0.2.0/ralphworks-0.2.0.tgz
 cd /path/to/target-repository
 ralphworks init
 ```
@@ -30,7 +30,8 @@ Set these in the target repository under **Settings â†’ Secrets and variables â†
 | Provider API key | Secret | Yes | The selected model provider's credential, for example `ZAI_CODING_CN_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `NVIDIA_API_KEY`. |
 | `RALPHWORKS_AUTH_SECRET` | Variable | For other provider key names | Name of the provider credential secret to export into the model process. |
 | `RALPHWORKS_SOURCE_REPO` | Variable | No | RalphWorks source repository; defaults to `OctopusGarage/ralphworks`. |
-| `RALPHWORKS_REF` | Variable | Recommended | Branch, tag, or full commit SHA in the source repository. The generated workflows default to `v0.1.1`. Pin a reviewed commit for repeatable runs. |
+| `RALPHWORKS_REF` | Variable | Recommended | Branch, tag, or full commit SHA in the source repository. The generated workflows default to `v0.2.0`. Pin a reviewed commit for repeatable runs. |
+| `RALPHWORKS_ARCHITECTURE_SKILL_REF` | Variable | Optional for architecture surveys | Commit SHA or branch in `mattpocock/skills`; a branch resolves to its current commit for each run. See [Architecture proposals](#architecture-proposals). |
 | `RALPHWORKS_REPO_TOKEN` | Secret | Only for a private source repository | Read access to `RALPHWORKS_SOURCE_REPO`. |
 
 For example, with GitHub CLI authenticated to the target repository:
