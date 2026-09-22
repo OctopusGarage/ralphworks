@@ -291,6 +291,8 @@ When a remote run returns `needs_input`, read its `reason` and run URL. Update t
 
 `ralphworks init` also creates eight label-driven workflows for issue implementation, PRD sub-issues, dependency queues, PR review and feedback, branch updates, and architecture proposals. They are separate from the `remote` command: successful implementation runs can push a branch and open or update a PR. Maintainers review and merge those PRs.
 
+Before an implementation workflow delivers a patch, it requires a completed run, passing checks from the final iteration, a nonempty patch, and its base commit record. Missing or failed artifacts stop delivery and leave the run available for inspection.
+
 The queue workflow paginates through all open queued issues. If PRD splitting creates some sub-issues before delivery fails, re-run the failed job from the same Actions run to finish that proposal without duplicating matching sub-issues. See the [issue and PR workflow guide](ISSUE_WORKFLOWS.md#limits-failures-and-verification) for recovery steps.
 
 The [issue and PR workflow guide](ISSUE_WORKFLOWS.md) covers installation, credentials, labels, each path, and retries. Existing workflow files are not overwritten by `init`.

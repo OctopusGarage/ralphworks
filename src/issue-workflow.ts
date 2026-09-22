@@ -1,4 +1,4 @@
-import { failureComment, PROVIDER_CREDENTIAL_ENV } from "./workflow-execution.ts";
+import { checkedPatchArtifact, failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const ISSUE_WORKFLOW = [
   "name: RalphWorks Issue",
@@ -60,14 +60,7 @@ export const ISSUE_WORKFLOW = [
   "        run: |",
   "          set -euo pipefail",
   '          [[ "$RALPHWORKS_SOURCE_REPO" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || exit 1',
-  '          if [ -n "$SOURCE_TOKEN" ]; then',
-  '            GH_TOKEN="$SOURCE_TOKEN" gh repo clone "$RALPHWORKS_SOURCE_REPO" "$RUNNER_TEMP/ralphworks"',
-  "          else",
-  '            git clone "https://github.com/${RALPHWORKS_SOURCE_REPO}.git" "$RUNNER_TEMP/ralphworks"',
-  "          fi",
-  '          git -C "$RUNNER_TEMP/ralphworks" checkout --detach "$RALPHWORKS_REF"',
-  '          pnpm --dir "$RUNNER_TEMP/ralphworks" install --frozen-lockfile',
-  '          pnpm --dir "$RUNNER_TEMP/ralphworks" build',
+  ...RALPHWORKS_CHECKOUT_AND_BUILD,
   "      - name: Prepare issue task and dependencies",
   "        env:",
   "          ISSUE_TITLE: ${{ github.event.issue.title }}",
@@ -141,10 +134,7 @@ export const ISSUE_WORKFLOW = [
   "      - name: Validate completed result",
   "        run: |",
   "          set -euo pipefail",
-  '          result=$(find "$RUNNER_TEMP/ralph-result/runs" -name result.json -type f -print -quit)',
-  '          [ -n "$result" ] || { echo "Missing RalphWorks result" >&2; exit 1; }',
-  '          jq -e \'.status == "completed" and (.iterations as $last | [.checks[] | select(.iteration == $last)] | length > 0) and (.iterations as $last | [.checks[] | select(.iteration == $last and .exitCode != 0)] | length == 0)\' "$result" >/dev/null',
-  '          [ -s "$RUNNER_TEMP/ralph-result/export/change.patch" ] || { echo "Completed task produced no patch" >&2; exit 1; }',
+  ...checkedPatchArtifact("ralph-result"),
   "      - uses: actions/checkout@v4",
   "        with:",
   "          persist-credentials: false",

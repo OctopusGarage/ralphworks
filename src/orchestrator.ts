@@ -1,9 +1,9 @@
-import { spawn } from "node:child_process";
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
+import { type CheckResult, runCheck } from "./check-runner.ts";
 import { commitVerifiedChanges, currentGitHead, verifyCleanGitWorkspace, workspaceFingerprint } from "./git-transaction.ts";
-import { defaultProgressFile, loadJob, type RalphJob } from "./job.ts";
+import { loadJob, prepareJob, type RalphJob } from "./job.ts";
 import { redactSensitiveValues } from "./redact.ts";
 import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
@@ -52,7 +52,7 @@ export async function runLocalJob(jobPath: string, options: RunOptions = {}): Pr
 
 async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: string): Promise<RalphRunResult> {
   const resolvedJobPath = resolvePath(cwd, jobPath);
-  const job = await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath);
+  let job = await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath);
   if (options.checksOverride) job.checks = options.checksOverride;
   applyJobOverrides(job, options.jobOverrides);
   job.maxMinutes ??= 30;
@@ -75,14 +75,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
   let reason: string | undefined;
   let lastSummary: string | undefined;
   try {
-    const originalTask = job.task;
-    if (job.promptFile) {
-      job.task += `\n\n${await readFile(resolvePath(cwd, job.promptFile), "utf8")}`;
-    }
-    if (options.contexts?.length) job.task += await loadContexts(cwd, options.contexts);
-    if (job.progressFile === defaultProgressFile(job.name, originalTask)) {
-      job.progressFile = defaultProgressFile(job.name, job.task);
-    }
+    job = await prepareJob(job, cwd, options.contexts ?? []);
     await ensureProgressFile(cwd, job);
     await appendEvent(eventsPath, event("run_started", job));
     const deadline = job.maxMinutes === undefined ? undefined : Date.now() + job.maxMinutes * 60_000;
@@ -381,37 +374,6 @@ async function exists(path: string): Promise<boolean> {
   );
 }
 
-async function loadContexts(cwd: string, sources: string[]): Promise<string> {
-  const files: string[] = [];
-  for (const source of sources) {
-    const absolute = resolvePath(cwd, source);
-    const info = await stat(absolute);
-    if (info.isFile()) files.push(absolute);
-    else if (info.isDirectory()) await collectContextFiles(absolute, files);
-    else throw new Error(`Context source must be a file or directory: ${source}`);
-  }
-  if (files.length > 100) throw new Error("Context sources contain more than 100 files; narrow the context paths");
-  let total = 0;
-  const sections: string[] = [];
-  for (const file of files.sort()) {
-    const content = await readFile(file);
-    if (content.includes(0)) continue;
-    total += content.length;
-    if (total > 1024 * 1024) throw new Error("Context sources exceed 1 MiB; narrow the context paths");
-    sections.push(`\n\nContext file: ${relative(cwd, file)}\n\n${content.toString("utf8")}`);
-  }
-  return sections.join("");
-}
-
-async function collectContextFiles(directory: string, files: string[]): Promise<void> {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if ([".git", ".ralph", "node_modules"].includes(entry.name)) continue;
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) await collectContextFiles(path, files);
-    else if (entry.isFile()) files.push(path);
-  }
-}
-
 function applyJobOverrides(job: RalphJob, overrides: JobOverrides | undefined): void {
   if (!overrides) return;
   if (overrides.maxIterations !== undefined) job.maxIterations = overrides.maxIterations;
@@ -422,76 +384,9 @@ function applyJobOverrides(job: RalphJob, overrides: JobOverrides | undefined): 
   if (overrides.completionPromise !== undefined) job.completionPromise = overrides.completionPromise;
 }
 
-type CheckResult = {
-  command: string;
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-  timedOut?: boolean;
-  cancelled?: boolean;
-};
-
 type CheckRecord = CheckResult & {
   iteration: number;
 };
-
-function runCheck(command: string, cwd: string, timeoutMs: number, signal?: AbortSignal): Promise<CheckResult> {
-  return new Promise((resolveCheck) => {
-    const child = spawn(command, { cwd, shell: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    let timedOut = false;
-    let cancelled = false;
-    let error: Error | undefined;
-    let settled = false;
-    let killTimer: NodeJS.Timeout | undefined;
-    const killGroup = (signal: NodeJS.Signals) => {
-      try {
-        if (child.pid && process.platform !== "win32") process.kill(-child.pid, signal);
-        else child.kill(signal);
-      } catch (cause) {
-        if (!(cause instanceof Error && "code" in cause && cause.code === "ESRCH")) error = cause as Error;
-      }
-    };
-    const timer = setTimeout(() => {
-      timedOut = true;
-      killGroup("SIGTERM");
-      killTimer = setTimeout(() => killGroup("SIGKILL"), 1000);
-    }, timeoutMs);
-    const abort = () => {
-      cancelled = true;
-      clearTimeout(timer);
-      killGroup("SIGTERM");
-      killTimer ??= setTimeout(() => killGroup("SIGKILL"), 1000);
-    };
-    signal?.addEventListener("abort", abort, { once: true });
-    if (signal?.aborted) abort();
-    const capture = (chunk: Buffer, stream: "stdout" | "stderr") => {
-      if (stream === "stdout") stdout = (stdout + chunk.toString()).slice(-8192);
-      else stderr = (stderr + chunk.toString()).slice(-8192);
-    };
-    child.stdout.on("data", (chunk: Buffer) => capture(chunk, "stdout"));
-    child.stderr.on("data", (chunk: Buffer) => capture(chunk, "stderr"));
-    child.on("error", (cause) => {
-      error = cause;
-    });
-    child.on("close", (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (killTimer) clearTimeout(killTimer);
-      signal?.removeEventListener("abort", abort);
-      resolveCheck({
-        command,
-        exitCode: code ?? 1,
-        stdout: redactSensitiveValues(stdout),
-        stderr: redactSensitiveValues(error ? `${stderr}\n${error.message}`.trim() : stderr),
-        ...(timedOut ? { timedOut: true } : {}),
-        ...(cancelled ? { cancelled: true } : {}),
-      });
-    });
-  });
-}
 
 function completionPromiseSatisfied(completionPromise: string | undefined, output: string): boolean {
   if (!completionPromise) {

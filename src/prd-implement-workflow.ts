@@ -1,4 +1,4 @@
-import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { checkedPatchArtifact, failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PRD_IMPLEMENT_WORKFLOW = [
   "name: RalphWorks Implement PRD",
@@ -145,10 +145,7 @@ export const PRD_IMPLEMENT_WORKFLOW = [
   "      - name: Validate result",
   "        run: |",
   "          set -euo pipefail",
-  '          result=$(find "$RUNNER_TEMP/prd-result/runs" -name result.json -type f -print -quit)',
-  '          [ -n "$result" ] || exit 1',
-  '          jq -e \'.status == "completed" and (.iterations as $last | [.checks[] | select(.iteration == $last)] | length > 0) and (.iterations as $last | [.checks[] | select(.iteration == $last and .exitCode != 0)] | length == 0)\' "$result" >/dev/null',
-  '          [ -s "$RUNNER_TEMP/prd-result/export/change.patch" ] || exit 1',
+  ...checkedPatchArtifact("prd-result"),
   "      - uses: actions/checkout@v4",
   "        with:",
   "          ref: ${{ steps.branch.outputs.ref }}",

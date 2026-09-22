@@ -2,6 +2,10 @@
 
 This guide installs RalphWorks' label-driven GitHub Actions workflows in another repository. The workflows turn an issue into a checked draft PR, split and implement a PRD, promote issues when dependencies close, review a PR, apply feedback, update a PR branch, and propose architecture work. A maintainer still reviews and merges implementation PRs.
 
+Each model-backed workflow builds a task file from its trigger and relevant repository context, then runs it through the same RalphWorks loop. Its execution job records the result and artifacts; a separate delivery job checks them before writing to GitHub. Scenario task text is defined in the generated workflow templates, while the loop's shared prompt rules are described in [the architecture guide](ARCHITECTURE.md#prompt-and-skill-boundaries).
+
+Implementation delivery requires a completed run, passing checks in its final iteration, a nonempty patch, and the patch's base commit record. The delivery job also verifies that the target branch has not advanced before applying the patch.
+
 ## 1. Prepare the target repository
 
 The target must have GitHub Issues, Pull Requests, and Actions enabled. The workflows run on GitHub-hosted Ubuntu runners with Node.js 24 and pnpm 10.13.1. Project dependencies are installed with pnpm, npm, or Yarn when the corresponding lockfile exists. Make sure the repository's own test and build commands run on Ubuntu.

@@ -1,16 +1,68 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
 import { ISSUE_WORKFLOW } from "../src/issue-workflow.ts";
+import { PR_FEEDBACK_WORKFLOW } from "../src/pr-feedback-workflow.ts";
+import { PRD_IMPLEMENT_WORKFLOW } from "../src/prd-implement-workflow.ts";
 import { PRD_SPLIT_WORKFLOW } from "../src/prd-split-workflow.ts";
 import { QUEUE_WORKFLOW } from "../src/queue-workflow.ts";
 
 const run = promisify(execFile);
+
+for (const { name, workflow, step, artifact } of [
+  { name: "issue", workflow: ISSUE_WORKFLOW, step: "Validate completed result", artifact: "ralph-result" },
+  { name: "PRD implementation", workflow: PRD_IMPLEMENT_WORKFLOW, step: "Validate result", artifact: "prd-result" },
+  { name: "PR feedback", workflow: PR_FEEDBACK_WORKFLOW, step: "Validate result", artifact: "feedback" },
+]) {
+  test(`${name} delivery accepts only a completed, checked patch artifact`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ralphworks-delivery-"));
+    const artifactDir = join(directory, artifact);
+    const resultPath = join(artifactDir, "runs", "run-1", "result.json");
+    const patchPath = join(artifactDir, "export", "change.patch");
+    const basePath = join(artifactDir, "export", "base-sha.txt");
+    const script = stepScript(workflow, step);
+    const env = { ...process.env, RUNNER_TEMP: directory };
+    const completed = { status: "completed", iterations: 2, checks: [{ iteration: 2, exitCode: 0 }] };
+    await mkdir(join(artifactDir, "runs", "run-1"), { recursive: true });
+    await mkdir(join(artifactDir, "export"), { recursive: true });
+
+    try {
+      await writeFile(patchPath, "nonempty patch\n");
+      await writeFile(basePath, "0123456789abcdef\n");
+      for (const { label, result, patch, base } of [
+        { label: "valid", result: completed, patch: true, base: true },
+        { label: "nonterminal", result: { ...completed, status: "needs_input" }, patch: true, base: true },
+        {
+          label: "checks from an earlier iteration",
+          result: { ...completed, checks: [{ iteration: 1, exitCode: 0 }] },
+          patch: true,
+          base: true,
+        },
+        { label: "failed final check", result: { ...completed, checks: [{ iteration: 2, exitCode: 1 }] }, patch: true, base: true },
+        { label: "missing run result", result: null, patch: true, base: true },
+        { label: "malformed run result", result: "{not json", patch: true, base: true },
+        { label: "empty patch", result: completed, patch: false, base: true },
+        { label: "missing base commit", result: completed, patch: true, base: false },
+      ]) {
+        if (result === null) await rm(resultPath, { force: true });
+        else await writeFile(resultPath, typeof result === "string" ? result : JSON.stringify(result));
+        await writeFile(patchPath, patch ? "nonempty patch\n" : "");
+        if (base) await writeFile(basePath, "0123456789abcdef\n");
+        else await rm(basePath, { force: true });
+        const execution = run("bash", ["-e", "-c", script], { env });
+        if (label === "valid") await execution;
+        else await assert.rejects(execution, `${name} accepted ${label}`);
+      }
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+}
 
 test("issue failure reports the human question from a run artifact", async () => {
   const directory = await mkdtemp(join(tmpdir(), "ralphworks-feedback-"));
