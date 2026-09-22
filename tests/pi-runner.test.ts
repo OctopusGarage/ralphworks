@@ -206,10 +206,12 @@ test("PiSdkRunner passes configured provider/model to the session factory", asyn
   const captured: Array<{
     cwd: string;
     modelRef?: { provider: string; id: string };
+    piAgentDir?: string;
   }> = [];
 
   const runner = new PiSdkRunner({
     modelRef: { provider: "anthropic", id: "claude-opus-4-5" },
+    piAgentDir: "/tmp/pi-agent",
     createSession: async (input) => {
       captured.push(input);
       return {
@@ -226,6 +228,7 @@ test("PiSdkRunner passes configured provider/model to the session factory", asyn
     {
       cwd: "/tmp/project",
       modelRef: { provider: "anthropic", id: "claude-opus-4-5" },
+      piAgentDir: "/tmp/pi-agent",
     },
   ]);
 });

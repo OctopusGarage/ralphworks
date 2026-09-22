@@ -199,6 +199,7 @@ async function createDefaultPiSession(input: { cwd: string; modelRef?: ModelRef;
   }
   const { session } = await createAgentSession({
     cwd: input.cwd,
+    ...(input.piAgentDir ? { agentDir: input.piAgentDir } : {}),
     sessionManager: SessionManager.create(input.cwd),
     ...(modelRuntime ? { modelRuntime } : {}),
     ...(model ? { model } : {}),
