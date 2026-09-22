@@ -1,10 +1,36 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { loadJob, parseJob } from "../src/job.ts";
+import { loadJob, parseJob, prepareJob } from "../src/job.ts";
+
+test("prepareJob assembles prompt and context before identifying default progress", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-job-input-"));
+  const contextDir = join(workspace, "context");
+  await mkdir(contextDir);
+  await writeFile(join(workspace, "prompt.md"), "Additional acceptance criteria.");
+  await writeFile(join(contextDir, "notes.md"), "Useful repository context.");
+  await writeFile(join(contextDir, "binary.dat"), Buffer.from([0, 1, 2]));
+  const original = parseJob("name: input-task\ntask: Implement the change.\nprompt_file: prompt.md\n");
+
+  const prepared = await prepareJob(original, workspace, [contextDir]);
+
+  assert.equal(original.task, "Implement the change.");
+  assert.match(prepared.task, /^Implement the change\.\n\nAdditional acceptance criteria\./);
+  assert.match(prepared.task, /Context file: context\/notes\.md\n\nUseful repository context\./);
+  assert.doesNotMatch(prepared.task, /binary\.dat/);
+  assert.notEqual(prepared.progressFile, original.progressFile);
+  assert.equal(prepared.progressFile, (await prepareJob(original, workspace, [contextDir])).progressFile);
+});
+
+test("prepareJob preserves an explicit progress file", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-job-input-"));
+  const original = parseJob("name: shared-task\ntask: Do it.\nprogress_file: .ralph/progress/shared.md\n");
+
+  assert.equal((await prepareJob(original, workspace, [])).progressFile, ".ralph/progress/shared.md");
+});
 
 test("jobs keep separate default progress files", () => {
   const first = parseJob("name: first-task\ntask: Do first.\n");

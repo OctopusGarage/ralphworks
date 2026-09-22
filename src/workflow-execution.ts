@@ -16,6 +16,17 @@ export const RALPHWORKS_CHECKOUT_AND_BUILD = [
   '          pnpm --dir "$RUNNER_TEMP/ralphworks" build',
 ] as const;
 
+export function checkedPatchArtifact(artifact: string): string[] {
+  const root = `$RUNNER_TEMP/${artifact}`;
+  return [
+    `          result=$(find "${root}/runs" -name result.json -type f -print -quit)`,
+    '          [ -n "$result" ] || { echo "Missing RalphWorks result" >&2; exit 1; }',
+    '          jq -e \'.status == "completed" and (.iterations as $last | [.checks[] | select(.iteration == $last)] | length > 0) and (.iterations as $last | [.checks[] | select(.iteration == $last and .exitCode != 0)] | length == 0)\' "$result" >/dev/null',
+    `          [ -s "${root}/export/change.patch" ] || { echo "Completed task produced no patch" >&2; exit 1; }`,
+    `          [ -s "${root}/export/base-sha.txt" ] || { echo "Missing patch base commit" >&2; exit 1; }`,
+  ];
+}
+
 export function failureComment(
   artifact: string,
   targetNumber: string,

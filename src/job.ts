@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { basename, extname } from "node:path";
+import { readdir, readFile, stat } from "node:fs/promises";
+import { basename, extname, isAbsolute, join, relative } from "node:path";
 
 export type RalphJob = {
   name: string;
@@ -17,7 +17,7 @@ export type RalphJob = {
   commit: "none" | "verified";
 };
 
-export function defaultProgressFile(name: string, task: string): string {
+function defaultProgressFile(name: string, task: string): string {
   const slug =
     name
       .toLowerCase()
@@ -40,6 +40,52 @@ export async function loadJob(jobPath: string): Promise<RalphJob> {
     return parseTaskFile(jobPath, text);
   }
   return parseJob(text);
+}
+
+export async function prepareJob(job: RalphJob, cwd: string, contexts: string[]): Promise<RalphJob> {
+  let task = job.task;
+  if (job.promptFile) task += `\n\n${await readFile(resolveInputPath(cwd, job.promptFile), "utf8")}`;
+  if (contexts.length) task += await loadContexts(cwd, contexts);
+  return {
+    ...job,
+    task,
+    progressFile: job.progressFile === defaultProgressFile(job.name, job.task) ? defaultProgressFile(job.name, task) : job.progressFile,
+  };
+}
+
+async function loadContexts(cwd: string, sources: string[]): Promise<string> {
+  const files: string[] = [];
+  for (const source of sources) {
+    const absolute = resolveInputPath(cwd, source);
+    const info = await stat(absolute);
+    if (info.isFile()) files.push(absolute);
+    else if (info.isDirectory()) await collectContextFiles(absolute, files);
+    else throw new Error(`Context source must be a file or directory: ${source}`);
+  }
+  if (files.length > 100) throw new Error("Context sources contain more than 100 files; narrow the context paths");
+  let total = 0;
+  const sections: string[] = [];
+  for (const file of files.sort()) {
+    const content = await readFile(file);
+    if (content.includes(0)) continue;
+    total += content.length;
+    if (total > 1024 * 1024) throw new Error("Context sources exceed 1 MiB; narrow the context paths");
+    sections.push(`\n\nContext file: ${relative(cwd, file)}\n\n${content.toString("utf8")}`);
+  }
+  return sections.join("");
+}
+
+async function collectContextFiles(directory: string, files: string[]): Promise<void> {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if ([".git", ".ralph", "node_modules"].includes(entry.name)) continue;
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) await collectContextFiles(path, files);
+    else if (entry.isFile()) files.push(path);
+  }
+}
+
+function resolveInputPath(cwd: string, path: string): string {
+  return isAbsolute(path) ? path : join(cwd, path);
 }
 
 export function parseJob(text: string): RalphJob {

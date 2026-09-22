@@ -8,7 +8,7 @@ flowchart LR
     Job --> Orchestrator[Orchestrator]
     Orchestrator --> Worker[Pi worker process]
     Worker --> Runner[Pi SDK runner]
-    Orchestrator --> Checks[Check runner]
+    Orchestrator --> Checks[Shell check runner]
     Orchestrator --> Git[Git transaction]
     Orchestrator --> State[Run state]
     Docker[Docker executors] --> CLI
@@ -23,9 +23,10 @@ flowchart LR
 | Module | Responsibility |
 | --- | --- |
 | `cli.ts` | Selects commands and execution environments, reports exit status and output locations. |
-| `job.ts` | Loads direct task text, plain text files, or restricted YAML and validates job fields. |
+| `job.ts` | Loads and validates task inputs, adds prompt and context files, and derives the progress identity. |
 | `run-args.ts` | Parses CLI overrides, model selection, Pi configuration, and environment forwarding. |
-| `orchestrator.ts` | Owns the state machine, limits, checks, progress, commits, and terminal result. |
+| `orchestrator.ts` | Owns the state machine, limits, check decisions, progress, commits, and terminal result. |
+| `check-runner.ts` | Runs one shell check with output limits, credential redaction, timeout, and cancellation. |
 | `pi-process-runner.ts`, `pi-worker.ts` | Isolate each CLI Pi iteration in a process that can be stopped at the run deadline. |
 | `pi-runner.ts` | Creates one Pi SDK session per iteration and normalizes model events, output, errors, and cost. |
 | `runner.ts` | Defines the small runner interface and the diagnostic dry-run implementation. |
@@ -35,8 +36,9 @@ flowchart LR
 | `docker-clone-executor.ts` | Clones a branch into the sandbox and exports an inspectable binary patch plus run records. |
 | `docker-env.ts` | Transfers only selected model, Pi, check, context, override, and provider environment settings. |
 | `remote-executor.ts` | Dispatches GitHub Actions, correlates the run, waits for completion, and downloads artifacts. |
-| `init.ts`, `*-workflow.ts` | Generate the manual and issue/PR workflows without overwriting existing files; ignore local RalphWorks state. |
-| `workflow-execution.ts` | Shares the identical RalphWorks checkout/build steps and provider credential environment across scenario workflow templates. |
+| `init.ts` | Writes the manual and scenario workflow templates without replacing existing files; ignores local RalphWorks state. |
+| `remote-workflow.ts`, `*-workflow.ts` | Define the manual remote workflow and the issue/PR scenario templates. |
+| `workflow-execution.ts` | Shares RalphWorks checkout/build steps, provider credential environment, and checked patch artifact validation across scenario workflow templates. |
 | `status.ts`, `trace.ts` | Read compact summaries from structured result and event files. |
 
 ## Core state machine
@@ -78,6 +80,14 @@ An agent may end its handoff with `<needs-input>one concrete question and releva
 Every run defaults to a 30-minute wall-clock limit unless the job or CLI supplies a value. Unattended Docker and GitHub Actions runs also default to $3. CLI Pi iterations run in a child process; at the deadline or on a local interrupt, RalphWorks terminates its process group before releasing the lock. Active checks are stopped in the same way. Custom in-process runners must honor abort signals. Cost is known after Pi reports the iteration, so a single iteration can cross the configured ceiling.
 
 The Docker and remote adapters have a separate 120-minute default outer deadline for setup, agent execution, and result delivery. `--total-minutes` overrides it. A timed-out Docker adapter attempts to force-remove its named container. A timed-out remote wait requests cancellation of its Actions run and returns the run URL for follow-up.
+
+## Prompt and skill boundaries
+
+RalphWorks does not replace Pi's system prompt. Pi supplies its own system instructions and discovers skills from its configured agent and trusted project directories. RalphWorks sends each fresh Pi session a task prompt containing the job, iteration number, task text, bounded saved progress, and rules for checks, Git ownership, handoff, completion, and human input. `buildRalphPrompt` in `src/pi-runner.ts` is the source of truth for that text.
+
+Scenario workflows create task files before invoking the same loop. Their instructions and referenced repository, Issue, PR, diff, or feedback files become the task portion of the RalphWorks prompt; they are not separate system prompts. The `src/*-workflow.ts` templates are the source of truth for scenario wording. When an architecture workflow uses an external skill, it checks out a selected `mattpocock/skills` commit, installs the skill for Pi, and records the resolved commit in its artifact and Issue. Skill content can change between runs when the configured ref is a branch.
+
+The agent requests completion with the configured `<promise>…</promise>` value, or asks for a person with a final `<needs-input>…</needs-input>` handoff. RalphWorks interprets those signals and independently applies its checks and limits; prompt instructions alone do not establish that a task passed verification.
 
 ## Git ownership
 

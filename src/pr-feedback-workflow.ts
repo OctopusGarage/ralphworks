@@ -1,4 +1,4 @@
-import { failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
+import { checkedPatchArtifact, failureComment, PROVIDER_CREDENTIAL_ENV, RALPHWORKS_CHECKOUT_AND_BUILD } from "./workflow-execution.ts";
 
 export const PR_FEEDBACK_WORKFLOW = [
   "name: RalphWorks PR Feedback",
@@ -117,10 +117,7 @@ export const PR_FEEDBACK_WORKFLOW = [
   "      - name: Validate result",
   "        run: |",
   "          set -euo pipefail",
-  '          result=$(find "$RUNNER_TEMP/feedback/runs" -name result.json -type f -print -quit)',
-  '          [ -n "$result" ] || exit 1',
-  '          jq -e \'.status == "completed" and (.iterations as $last | [.checks[] | select(.iteration == $last)] | length > 0) and (.iterations as $last | [.checks[] | select(.iteration == $last and .exitCode != 0)] | length == 0)\' "$result" >/dev/null',
-  '          [ -s "$RUNNER_TEMP/feedback/export/change.patch" ] || exit 1',
+  ...checkedPatchArtifact("feedback"),
   "      - uses: actions/checkout@v4",
   "        with:",
   "          ref: ${{ github.event.pull_request.head.sha }}",
