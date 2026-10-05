@@ -38,13 +38,13 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "^0.85.1"
+    "@earendil-works/pi-coding-agent": "^0.99.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.14",
-    "@types/node": "^24.0.0",
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "^24.19.1",
     "husky": "9.1.7",
-    "knip": "6.37.0",
+    "knip": "6.39.0",
     "typescript": "^5.7.0"
   },
   "engines": {
