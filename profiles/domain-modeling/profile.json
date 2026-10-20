@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "name": "domain-modeling",
+  "description": "Clarify domain terminology and record scoped glossary and architecture decisions",
+  "category": "delivery",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:mattpocock-domain-modeling"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["MODEL_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "MODEL_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "name": "security-maintenance",
+  "description": "Repair confirmed, reachable security findings with compatible changes",
+  "prompts": ["prompt.md"],
+  "skills": [],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "maxFixes": {
+      "type": "number",
+      "default": 3
+    },
+    "allowDependencyUpdates": {
+      "type": "boolean",
+      "default": true
+    },
+    "allowConfigHardening": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["SECURITY_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "SECURITY_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ],
+  "category": "quality"
+}

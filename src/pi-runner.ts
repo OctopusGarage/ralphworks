@@ -1,9 +1,13 @@
 import { join } from "node:path";
 
 import type { RalphJob } from "./job.ts";
+import { connectMcpTools } from "./mcp-client.ts";
+import type { McpBindings } from "./mcp-config.ts";
+import { createProfileResourceLoader } from "./pi-resources.ts";
 import { redactSensitiveValues } from "./redact.ts";
 import type { ModelRef } from "./run-args.ts";
 import type { AgentRunner, IterationResult, RunnerEvent } from "./runner.ts";
+import { normalizeTaskEnvironment, type TaskEnvironment } from "./task-environment.ts";
 
 export type PiSessionEvent = {
   type: string;
@@ -26,26 +30,46 @@ type PiSessionLike = {
   subscribe(listener: (event: PiSessionEvent) => void): () => void;
   prompt(text: string): Promise<void>;
   waitForIdle?: () => Promise<void>;
-  dispose?: () => void;
+  dispose?: () => void | Promise<void>;
+  environmentEvents?: RunnerEvent[];
   abort?: () => Promise<void>;
   getSessionStats?: () => { cost: number };
 };
 
-type PiSdkRunnerOptions = {
+type SessionInput = {
+  cwd: string;
   modelRef?: ModelRef;
   piAgentDir?: string;
-  createSession?: (input: { cwd: string; modelRef?: ModelRef; piAgentDir?: string }) => Promise<PiSessionLike>;
+  skillPaths?: string[];
+  environment?: TaskEnvironment;
+  mcpBindings?: McpBindings;
+  signal?: AbortSignal;
+};
+
+type PiSdkRunnerOptions = {
+  environment?: TaskEnvironment;
+  mcpBindings?: McpBindings;
+  skillPaths?: string[];
+  modelRef?: ModelRef;
+  piAgentDir?: string;
+  createSession?: (input: SessionInput) => Promise<PiSessionLike>;
 };
 
 export class PiSdkRunner implements AgentRunner {
-  #createSession: (input: { cwd: string; modelRef?: ModelRef; piAgentDir?: string }) => Promise<PiSessionLike>;
+  #createSession: (input: SessionInput) => Promise<PiSessionLike>;
   #modelRef: ModelRef | undefined;
   #piAgentDir: string | undefined;
+  #skillPaths: string[];
+  #environment: TaskEnvironment | undefined;
+  #mcpBindings: McpBindings | undefined;
 
   constructor(options: PiSdkRunnerOptions = {}) {
     this.#createSession = options.createSession ?? createDefaultPiSession;
     this.#modelRef = options.modelRef;
     this.#piAgentDir = options.piAgentDir;
+    this.#skillPaths = options.skillPaths ?? [];
+    this.#environment = options.environment;
+    this.#mcpBindings = options.mcpBindings;
   }
 
   async runIteration(input: {
@@ -54,13 +78,18 @@ export class PiSdkRunner implements AgentRunner {
     cwd: string;
     progress?: string;
     signal?: AbortSignal;
+    environment?: TaskEnvironment;
   }): Promise<IterationResult> {
     const session = await this.#createSession({
       cwd: input.cwd,
+      ...((input.environment ?? this.#environment) ? { environment: input.environment ?? this.#environment } : {}),
+      ...(this.#mcpBindings ? { mcpBindings: this.#mcpBindings } : {}),
+      ...(input.signal ? { signal: input.signal } : {}),
+      ...(this.#skillPaths.length ? { skillPaths: this.#skillPaths } : {}),
       ...(this.#modelRef ? { modelRef: this.#modelRef } : {}),
       ...(this.#piAgentDir ? { piAgentDir: this.#piAgentDir } : {}),
     });
-    const events: RunnerEvent[] = [];
+    const events: RunnerEvent[] = [...(session.environmentEvents ?? [])];
     let output = "";
     let currentAssistantText = "";
     let lastAssistantText = "";
@@ -91,12 +120,13 @@ export class PiSdkRunner implements AgentRunner {
     });
 
     try {
+      input.signal?.throwIfAborted();
       await session.prompt(buildRalphPrompt(input.job, input.iteration, input.progress ?? ""));
       await session.waitForIdle?.();
     } finally {
       unsubscribe();
       input.signal?.removeEventListener("abort", abort);
-      session.dispose?.();
+      await session.dispose?.();
     }
 
     const blocked = assistantErrors.length > 0;
@@ -179,7 +209,7 @@ function normalizePiEvent(event: PiSessionEvent): RunnerEvent | undefined {
   return undefined;
 }
 
-async function createDefaultPiSession(input: { cwd: string; modelRef?: ModelRef; piAgentDir?: string }): Promise<PiSessionLike> {
+async function createDefaultPiSession(input: SessionInput): Promise<PiSessionLike> {
   const { createAgentSession, ModelRuntime, SessionManager } = await import("@earendil-works/pi-coding-agent");
   const modelRuntime =
     input.modelRef || input.piAgentDir
@@ -197,12 +227,85 @@ async function createDefaultPiSession(input: { cwd: string; modelRef?: ModelRef;
   if (input.modelRef && !model) {
     throw new Error(`Pi model not found: ${input.modelRef.provider}/${input.modelRef.id}`);
   }
-  const { session } = await createAgentSession({
-    cwd: input.cwd,
-    ...(input.piAgentDir ? { agentDir: input.piAgentDir } : {}),
-    sessionManager: SessionManager.create(input.cwd),
-    ...(modelRuntime ? { modelRuntime } : {}),
-    ...(model ? { model } : {}),
-  });
-  return session as PiSessionLike;
+  const environment = input.environment ?? normalizeTaskEnvironment(undefined);
+  const resourceLoader = await createProfileResourceLoader({ ...input, skillPaths: input.skillPaths ?? [], environment });
+  let mcp: Awaited<ReturnType<typeof connectMcpTools>> | undefined;
+  let session: Awaited<ReturnType<typeof createAgentSession>>["session"] | undefined;
+  const release = async () => {
+    try {
+      if (session) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            session.extensionRunner.emit({ type: "session_shutdown", reason: "quit" }),
+            new Promise<void>((resolve) => {
+              timer = setTimeout(resolve, 2000);
+            }),
+          ]);
+        } finally {
+          if (timer) clearTimeout(timer);
+          session.dispose();
+        }
+      }
+    } finally {
+      try {
+        await mcp?.close();
+      } finally {
+        await resourceLoader.release();
+      }
+    }
+  };
+  try {
+    mcp = await connectMcpTools(environment.mcp, input.mcpBindings ?? {}, { cwd: input.cwd, signal: input.signal });
+    const requested = [...new Set([...environment.tools, ...mcp.tools.map((tool) => tool.name)])];
+    const result = await createAgentSession({
+      resourceLoader,
+      settingsManager: resourceLoader.taskSettings,
+      cwd: input.cwd,
+      ...(input.piAgentDir ? { agentDir: input.piAgentDir } : {}),
+      sessionManager: SessionManager.create(input.cwd),
+      ...(modelRuntime ? { modelRuntime } : {}),
+      ...(model ? { model } : {}),
+      tools: requested,
+      customTools: mcp.tools,
+    });
+    session = result.session;
+    const extensionErrors: string[] = [];
+    await session.bindExtensions({
+      mode: "print",
+      onError: (error) => {
+        extensionErrors.push(redactSensitiveValues(JSON.stringify(error)));
+      },
+    });
+    if (extensionErrors.length) throw new Error(`Task extension startup failed: ${extensionErrors.join("; ")}`);
+    const available = new Set(session.getAllTools().map((tool) => tool.name));
+    for (const name of requested) if (!available.has(name)) throw new Error(`Requested task tool is unavailable: ${name}`);
+    session.setActiveToolsByName(requested);
+    const activeSession = session;
+    return {
+      subscribe: activeSession.subscribe.bind(activeSession),
+      prompt: async (text) => {
+        await activeSession.prompt(text);
+      },
+      waitForIdle: activeSession.waitForIdle.bind(activeSession),
+      abort: activeSession.abort.bind(activeSession),
+      getSessionStats: activeSession.getSessionStats.bind(activeSession),
+      dispose: release,
+      environmentEvents: [
+        {
+          type: "pi_environment_ready",
+          details: {
+            resourceInheritance: environment.resourceInheritance,
+            tools: activeSession.getActiveToolNames(),
+            skills: resourceLoader.getSkills().skills.map((skill) => ({ name: skill.name, path: skill.filePath })),
+            extensions: resourceLoader.getExtensions().extensions.map((extension) => extension.path),
+            mcp: mcp.inventory,
+          },
+        },
+      ],
+    };
+  } catch (error) {
+    await release();
+    throw error;
+  }
 }

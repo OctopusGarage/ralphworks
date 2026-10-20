@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "name": "repository-research-with-deepwiki",
+  "description": "Repository research with deepwiki",
+  "category": "discovery",
+  "prompts": ["base.md", "prompt.md"],
+  "skills": [],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "repository": null
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["RESEARCH_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {
+      "wiki": {
+        "tools": ["read_wiki_structure", "read_wiki_contents", "ask_wiki_question"],
+        "required": true,
+        "timeoutSeconds": 60
+      }
+    },
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "RESEARCH_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

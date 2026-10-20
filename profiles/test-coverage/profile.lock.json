@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:brooks-test": {
+      "entrypoint": "brooks-test/SKILL.md",
+      "source": {
+        "entrypoint": "brooks-test/SKILL.md",
+        "source": "https://github.com/hyhmrright/brooks-lint",
+        "path": "skills",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "917ea82286e74569817875e6a9da8bdf95030c3f"
+      },
+      "scope": "builtin",
+      "snapshot": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+      "importedAt": "2026-10-20T11:01:56.407Z",
+      "use": "builtin:brooks-test"
+    }
+  }
+}

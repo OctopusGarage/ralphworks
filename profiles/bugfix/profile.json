@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "name": "bugfix",
+  "description": "Reproduce and repair reported defects or investigate bounded correctness risks",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:playwright-cli"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "mode": {
+      "type": "string",
+      "default": "reported",
+      "enum": ["reported", "discover"]
+    },
+    "maxFixes": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["BUGFIX_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "BUGFIX_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ],
+  "category": "delivery"
+}

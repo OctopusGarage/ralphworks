@@ -66,7 +66,7 @@ export const PRD_SPLIT_WORKFLOW = [
   "        run: |",
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"; fi',
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/split-task.md" --executor host --check \'jq -e "type == \\"array\\" and length >= 2 and length <= 8 and all(.[]; (.title | type == \\"string\\" and length > 0) and (.body | type == \\"string\\" and length > 0))" .ralph/subissues.json\' --max-iterations 3 --max-minutes 20 --max-cost-usd 1',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/split-task.md" --executor host --check \'jq -e "type == \\"array\\" and length >= 2 and length <= 8 and all(.[]; (.title | type == \\"string\\" and length > 0) and (.body | type == \\"string\\" and length > 0))" .ralph/subissues.json\' --max-iterations 3 --max-minutes 20 --max-cost-usd 1 --workspace current',
   "      - uses: actions/upload-artifact@v4",
   "        if: always() && steps.ralph.outcome != 'skipped'",
   "        with:",

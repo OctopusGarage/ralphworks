@@ -4,7 +4,12 @@ RalphWorks separates job parsing, loop orchestration, agent execution, environme
 
 ```mermaid
 flowchart LR
-    CLI[CLI] --> Job[Job and context loader]
+    CLI[CLI] --> Profile[Reusable task profiles]
+    CLI --> Runtime[Runtime configuration]
+    CLI --> Workspace[Workspace preparation]
+    Profile --> Job[Job and context loader]
+    Runtime --> Job
+    Workspace --> Job
     Job --> Orchestrator[Orchestrator]
     Orchestrator --> Worker[Pi worker process]
     Worker --> Runner[Pi SDK runner]
@@ -23,6 +28,16 @@ flowchart LR
 | Module | Responsibility |
 | --- | --- |
 | `cli.ts` | Selects commands and execution environments, reports exit status and output locations. |
+| `task-profile.ts` | Resolves complete task environment bundles, typed parameters, ordered inheritance, built-ins, provenance, and portable personal collections. |
+| `skill-source.ts` | Resolves compatible inline GitHub sources and their cached commit pins. |
+| `skill-snapshot.ts` | Captures, hashes, copies, and verifies immutable complete skill trees. |
+| `skill-hub.ts` | Manages scoped catalogs, provenance, revisions, and portable import/export/fork operations. |
+| `profile-skills.ts` | Resolves ordered skill declarations, portable pins, vendoring, and run-only refresh policy. |
+| `skill-command.ts` | Exposes Skill Hub management through the CLI. |
+| `task-environment.ts` | Defines and validates resource inheritance, tools, extensions, contexts, MCP requirements, capabilities, and output requirements. |
+| `mcp-config.ts`, `mcp-client.ts` | Validate independent runtime bindings and connect selected MCP tools through the official MCP SDK for each fresh iteration. |
+| `runtime.ts` | Resolves project and personal defaults and optional runtime presets independently of task methods. |
+| `workspace.ts` | Creates retained Git worktrees and branches when requested; records their locations. |
 | `job.ts` | Loads and validates task inputs, adds prompt and context files, and derives the progress identity. |
 | `run-args.ts` | Parses CLI overrides, model selection, Pi configuration, and environment forwarding. |
 | `orchestrator.ts` | Owns the state machine, limits, check decisions, progress, commits, and terminal result. |
@@ -41,9 +56,31 @@ flowchart LR
 | `workflow-execution.ts` | Shares RalphWorks checkout/build steps, provider credential environment, and checked patch artifact validation across scenario workflow templates. |
 | `status.ts`, `trace.ts` | Read compact summaries from structured result and event files. |
 
+## Task methods and runtime configuration
+
+The shipped [task profile catalog](TASK_PROFILES.md) groups focused delivery, quality, design, discovery, and orchestration methods. Optional profile category metadata is descriptive, supports custom labels, and survives composition and collection; it does not select tools or execution policy. Composite `harness-auto` selects justified specialties within one bounded task and one prepared environment; it does not create nested orchestrators, schedules, or cross-repository Git ownership. Report-producing profiles expose explicit report writing while keeping implementation outside their task contract.
+
+A task profile declares the agent environment for a reusable task type: instructions, skills, tools, extensions, context, logical MCP requirements, typed inputs, job defaults, checks, and validated outputs. A job supplies the concrete objective. Runtime presets independently choose model configuration, executor, workspace, forwarded environment names, and MCP connection bindings. The core loop remains unaware of provider-specific gateways.
+
+Profiles resolve project names before personal names, then shipped built-ins; `builtin:NAME` bypasses overrides. Ordered inheritance concatenates and canonically deduplicates prompts, skills, extensions, and context. The most specific tool list replaces the inherited selection; MCP entries replace by alias, output requirements by path, and required commands/environment names combine. Explicit resource inheritance settings override ancestors. Strict validation rejects unknown fields, missing resources, cycles, invalid typed inputs, and resource limit violations before execution. Parameter substitution is literal and single-pass in task instructions; shell checks and MCP arguments are not interpolated.
+
+Collection flattens inheritance into a personal bundle and copies complete skill and extension directories, preserving support files, plus explicit contexts. A standalone extension file carries its containing directory. Collection rejects symlinks and existing names. A resolved manifest records source paths, resolved parameter strings, and SHA-256 hashes of manifests, prompts, explicit contexts, and all skill/extension support files. Explicit resources remain bounded to 100 files and 1 MiB. Host and Docker mount execution stage them under `.ralph/inputs/`; each run records its environment and prepared inputs in `task.json`.
+
+The Skill Hub separates durable skill assets from task composition and disposable download caches. Built-in, project, and personal stores share a catalog and content-addressed object format. Object identity includes relative file paths, content hashes, and executable permissions; upstream commit provenance belongs to catalog revisions rather than content identity. A selected entrypoint may be nested inside a complete archived bundle, allowing upstream shared sibling resources without rewriting instructions. Content identity covers the whole tree independently of entrypoint; logical selections and pins retain the selected entrypoint. Whole skill directories are archived, checked for unsafe assets and resource limits, and verified before use. Existing objects are never edited or silently replaced.
+
+Portable profile locks bind ordered logical selections to exact snapshot digests and storage scopes without absolute paths. Updating a Hub catalog does not move another profile's pins. Explicit profile updates publish a complete new pin set after its resources are prepared; old pins remain usable on failure. Vendoring copies selected snapshots into the project store so a relocated checkout with an empty personal library can resolve them without the upstream. Collection creates independent personal assets and pins. Built-in profiles ship complete prompts and pins for any selected skills. Task guidance belongs in profile prompts; specialized upstream skills remain unmodified, archived with licenses and source commit provenance. Prompt-only profiles use no skill dependencies. Legacy authored snapshots remain available for older locks.
+
+Runtime automatic refresh is opt-in and occurs once before staging. It archives new snapshots into personal persistent storage and records a run-only selection, leaving tracked project catalogs and locks unchanged. Failed refreshes fall back only to a valid pinned snapshot and are recorded in provenance. Missing or corrupted assets fail resolution. No iteration fetches dependencies; staged inputs stay fixed throughout the run. Inline GitHub declarations and local paths remain supported, and existing cached snapshots can be vendored without network access. Models and executors do not participate in Hub resolution.
+
+Agent resource inheritance defaults to `none`, including runs without profiles. `project` enables discovered resources belonging to the target project; `all` enables Pi's configured project and global resources. This choice is independent of model authentication and native provider settings. The adapter isolates implicit resources while explicitly loading the profile's skills, contexts, and extensions. It checks required commands and environment names inside the selected executor, validates selected tool names against the assembled session, and applies the tool allowlist. Tool selection controls the agent interface, not operating system access.
+
+Profiles refer to MCP aliases and optionally select tool names, require availability, and bound connection/tool timeouts. Runtime bindings resolve aliases to stdio commands or HTTP endpoints. Credential mappings contain parent environment variable names; values are supplied only when connecting. Selected MCP tools appear under `mcp__ALIAS__TOOL` and are appended to the selected agent tools. The adapter uses the official MCP SDK with the installed Pi version, creates connections for each fresh iteration, records connection inventory, and closes clients/transports on completion, setup failure, or cancellation. Optional service failures are recorded; required failures block session setup. Explicit Pi extensions retain startup/shutdown lifecycle behavior.
+
+CLI values override explicitly supplied YAML fields, which override profile defaults and built-in defaults. Profile selection resolves CLI, YAML, then project/personal configuration defaults. Model resolution stays with Pi after CLI, environment, and optional runtime settings are applied. `plan` resolves and reports these choices without starting an agent or preparing a worktree.
+
 ## Core state machine
 
-The orchestrator is the authority for completion. A runner may request completion, but the orchestrator also requires every configured check to pass. It owns these transitions:
+The orchestrator is the authority for completion. A runner may request completion, but the orchestrator also requires every configured check and output requirement to pass. It owns these transitions:
 
 ```mermaid
 stateDiagram-v2
@@ -73,7 +110,7 @@ Every iteration receives the same job plus a bounded view of the persisted progr
 
 RalphWorks injects a completion instruction into the Pi prompt. The configured completion value defaults to `DONE`; the runner recognizes it only in the assistant output protocol. The task text containing the same word does not complete the run.
 
-Checks run after the agent step. When no checks are configured, the check set is considered satisfied. With checks, all commands must exit successfully during the same iteration. A failed check allows another iteration while limits permit; a bounded excerpt of its output is carried into the next Pi session.
+Checks and independent output validation run after the agent step. Output requirements inspect non-empty files beneath the worktree and optionally parse JSON. Domain-specific assertions and JSON schemas belong in explicit check commands. Failed output validation is carried into subsequent progress and prevents completion. When no checks are configured, the check set is considered satisfied. With checks, all commands must exit successfully during the same iteration. A failed check allows another iteration while limits permit; a bounded excerpt of its output is carried into the next Pi session.
 
 An agent may end its handoff with `<needs-input>one concrete question and relevant findings</needs-input>` when it cannot resolve a decision or missing information itself. The runner returns `needs_input`; the orchestrator records the question and stops before checks or verified commits. The next run starts after a person updates the task or Issue.
 
@@ -83,7 +120,7 @@ The Docker and remote adapters have a separate 120-minute default outer deadline
 
 ## Prompt and skill boundaries
 
-RalphWorks does not replace Pi's system prompt. Pi supplies its own system instructions and discovers skills from its configured agent and trusted project directories. RalphWorks sends each fresh Pi session a task prompt containing the job, iteration number, task text, bounded saved progress, and rules for checks, Git ownership, handoff, completion, and human input. `buildRalphPrompt` in `src/pi-runner.ts` is the source of truth for that text.
+RalphWorks does not replace Pi's system prompt. Pi supplies its own system instructions. Implicit resource discovery is disabled by default and can be enabled for project resources or all configured resources through the profile. Selected profile skills are loaded through Pi's resource loader, and their full instructions are composed into the task. Explicit context files and selected tools are assembled by the Pi environment adapter. RalphWorks sends each fresh Pi session a task prompt containing the job, iteration number, task text, bounded saved progress, and rules for checks, Git ownership, handoff, completion, and human input. `buildRalphPrompt` in `src/pi-runner.ts` is the source of truth for that text.
 
 Scenario workflows create task files before invoking the same loop. Their instructions and referenced repository, Issue, PR, diff, or feedback files become the task portion of the RalphWorks prompt; they are not separate system prompts. The `src/*-workflow.ts` templates are the source of truth for scenario wording. When an architecture workflow uses an external skill, it checks out a selected `mattpocock/skills` commit, installs the skill for Pi, and records the resolved commit in its artifact and Issue. Skill content can change between runs when the configured ref is a branch.
 
@@ -113,7 +150,8 @@ flowchart TB
     Temporary --> Artifact[Patch and run artifacts]
 ```
 
-- `host` runs orchestration in the caller process and Pi iterations in child processes against the current worktree.
+- Workspace preparation chooses the current worktree or creates a clean HEAD-based task worktree on a unique branch. Task worktrees are retained; review, merging, and removal belong to the caller.
+- `host` runs orchestration in the caller process and Pi iterations in child processes against the selected worktree.
 - `docker` mounts that worktree at `/workspace`; it includes uncommitted input and writes changes back.
 - `docker-clone` starts from a pushed GitHub ref and exports artifacts before the container is removed.
 - `remote` dispatches a generated GitHub Actions workflow, then downloads the uploaded artifacts.
@@ -128,10 +166,18 @@ The issue and PR workflows supply that repository delivery policy. Their read-on
 
 | Path | Purpose |
 | --- | --- |
+| `.ralphworks/skills/catalog.json` | Project skill names, current revisions, and archived source provenance. |
+| `.ralphworks/skills/objects/<digest>/` | Durable immutable skill content and its integrity manifest. |
+| `.ralphworks/profiles/<name>/profile.lock.json` | Portable bindings from logical selections to exact snapshots and scopes. |
+| `<home>/skills/` | Personal durable assets, collections, and automatic refresh history. |
 | `.ralph/current` | Relative pointer to the most recent run. |
 | `.ralph/progress/<job>-<task-hash>.md` | Durable progress shared by iterations and later runs of the same task. |
 | `.ralph/runs/<job>-<timestamp>/events.jsonl` | Ordered orchestration and normalized Pi events. |
 | `.ralph/runs/<job>-<timestamp>/result.json` | Terminal state, iteration count, checks, cost, commits, and optional reason. |
+| `.ralph/runs/<job>-<timestamp>/environment-<iteration>.json` | Effective tool, skill, extension and MCP inventory for one Pi session. |
+| `.ralph/runs/<job>-<timestamp>/task.json` | Prepared task configuration and profile resource provenance. |
+| `.ralph/inputs/` | Prepared profile skills, extensions, contexts, and supporting files. |
+| `.ralph/workspaces/<id>.json` | Retained task worktree location, branch, and baseline commit. |
 | `.ralph/run.lock/` | Worktree mutual exclusion and heartbeat data. |
 | `.ralph/exports/<id>/` | Docker clone patch and result export. |
 | `.ralph/remote/<run-id>/` | Downloaded GitHub Actions artifacts. |
@@ -141,6 +187,6 @@ The issue and PR workflows supply that repository delivery policy. Their read-on
 - The YAML parser supports a small reviewed subset rather than general YAML.
 - Local runs start a new process and reuse saved progress for the same task. Remote runs can restore a prior run's patch and progress on the same unchanged branch with `--resume-from`.
 - YAML `mode: remote` is rejected during parsing; GitHub delivery uses the separate `remote` command.
-- The core CLI does not create branches or PRs; only the generated issue and PR workflows deliver to GitHub. They do not merge or deploy changes.
+- Task workspaces create local branches; GitHub delivery remains with the generated issue and PR workflows. The core CLI does not open PRs, merge, or deploy changes.
 - There is no dashboard or general command policy engine.
 - Docker is an execution boundary, not a trust boundary for arbitrary job and check commands.

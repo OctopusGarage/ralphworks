@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:web-performance": {
+      "source": {
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "path": "skills/performance",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "afa8da942115f2961fdbfa80807ea0b232ff6c00"
+      },
+      "scope": "builtin",
+      "snapshot": "4aae51d9c149d3f6ce3af50486073429192bcba983ca24f3995765ae1eaf19a4",
+      "importedAt": "2026-10-20T09:41:57.195Z",
+      "use": "builtin:web-performance"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "deep-debug",
+  "description": "Diagnose a difficult reported defect with a repeatable feedback loop",
+  "category": "delivery",
+  "extends": ["builtin:bugfix"],
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:mattpocock-diagnosing-bugs"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "mode": {
+      "type": "string",
+      "default": "reported",
+      "enum": ["reported"]
+    }
+  }
+}

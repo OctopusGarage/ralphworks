@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "mcp": {
+    "wiki": {
+      "transport": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    }
+  }
+}

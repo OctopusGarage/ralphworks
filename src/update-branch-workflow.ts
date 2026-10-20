@@ -98,7 +98,7 @@ export const UPDATE_BRANCH_WORKFLOW = [
   '          if [ -z "$(git diff --name-only --diff-filter=U)" ]; then exit 0; fi',
   '          [ -n "$RALPHWORKS_MODEL" ] || exit 1',
   "          printf 'Resolve the current Git merge conflicts, preserve the intended changes from both branches, run the configured checks, and signal DONE. Do not commit or change HEAD.\\n' > \"$RUNNER_TEMP/update-task.md\"",
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/update-task.md" --executor host --check "bash $RUNNER_TEMP/check-merge.sh" --max-iterations 5 --max-minutes 30 --max-cost-usd 3',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/update-task.md" --executor host --check "bash $RUNNER_TEMP/check-merge.sh" --max-iterations 5 --max-minutes 30 --max-cost-usd 3 --workspace current',
   "      - name: Validate and export merged tree",
   "        if: steps.merge.outputs.up_to_date == 'false'",
   "        run: |",

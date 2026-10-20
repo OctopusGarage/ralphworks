@@ -22,6 +22,8 @@ WORKDIR /opt/ralphworks
 COPY package.json pnpm-lock.yaml tsconfig.json ./
 COPY tsconfig.build.json ./
 COPY src ./src
+COPY profiles ./profiles
+COPY skills ./skills
 RUN pnpm install --frozen-lockfile && pnpm build && pnpm link --global \
   && ln -sf "$PNPM_HOME/ralphworks" /usr/local/bin/ralphworks \
   && ln -sf "$PNPM_HOME/ralph" /usr/local/bin/ralph

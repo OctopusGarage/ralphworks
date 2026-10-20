@@ -277,3 +277,118 @@ async function writeJob(path: string): Promise<void> {
     "utf8",
   );
 }
+
+test("CLI plan resolves a reusable task without executing checks or creating run state", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-plan-"));
+  await mkdir(join(cwd, "profile"));
+  await writeFile(
+    join(cwd, "profile", "profile.json"),
+    JSON.stringify({ version: 1, name: "review", prompts: ["method.md"], parameters: { scope: null }, checks: ["touch should-not-exist"] }),
+  );
+  await writeFile(join(cwd, "profile", "method.md"), "Review {{scope}}");
+  const { stdout } = await execFileAsync(
+    "node",
+    [CLI, "plan", "Review code", "--profile", "./profile", "--param", "scope=login", "--model", "any/model"],
+    { cwd },
+  );
+  const plan = JSON.parse(stdout);
+  assert.match(plan.job.task, /Review login/);
+  assert.equal(plan.runtime.modelRef.provider, "any");
+  const { readdir } = await import("node:fs/promises");
+  assert.deepEqual((await readdir(cwd)).sort(), ["profile"]);
+});
+
+test("CLI profiles collects, lists, shows and removes a personal task bundle", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-library-"));
+  const env = { ...process.env, RALPHWORKS_HOME: join(cwd, "library") };
+  await mkdir(join(cwd, "source"));
+  await writeFile(join(cwd, "source", "profile.json"), JSON.stringify({ version: 1, name: "review", prompts: ["method.md"] }));
+  await writeFile(join(cwd, "source", "method.md"), "Inspect correctness.");
+  await execFileAsync("node", [CLI, "profiles", "add", "./source", "my-review"], { cwd, env });
+  assert.match((await execFileAsync("node", [CLI, "profiles", "list"], { cwd, env })).stdout, /my-review/);
+  assert.match((await execFileAsync("node", [CLI, "profiles", "show", "my-review"], { cwd, env })).stdout, /Inspect correctness/);
+  await execFileAsync("node", [CLI, "profiles", "remove", "my-review"], { cwd, env });
+  assert.ok(
+    !JSON.parse((await execFileAsync("node", [CLI, "profiles", "list"], { cwd, env })).stdout).some(
+      (entry: { name: string }) => entry.name === "my-review",
+    ),
+  );
+});
+
+test("CLI worktree runs retain task records and leave source files unchanged", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-worktree-cli-"));
+  await execFileAsync("git", ["init", "-q"], { cwd });
+  await writeFile(join(cwd, "file.txt"), "source");
+  await execFileAsync("git", ["add", "."], { cwd });
+  await execFileAsync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "initial"], { cwd });
+  const worktree = join(cwd, "..", `task-${Date.now()}`);
+  await assert.rejects(
+    execFileAsync(
+      "node",
+      [
+        CLI,
+        "run",
+        "Do a task",
+        "--runner",
+        "dry-run",
+        "--workspace",
+        "worktree",
+        "--worktree-path",
+        worktree,
+        "--max-iterations",
+        "1",
+        "--check",
+        "echo task-edit > file.txt",
+      ],
+      { cwd },
+    ),
+    (error) => {
+      assert.match(String((error as { stdout: string }).stdout), /workspace=/);
+      return true;
+    },
+  );
+  const { readFile } = await import("node:fs/promises");
+  assert.equal(await readFile(join(cwd, "file.txt"), "utf8"), "source");
+  assert.equal((await readFile(join(worktree, "file.txt"), "utf8")).trim(), "task-edit");
+});
+
+test("container execution retains the prepared outer runtime in its run record", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-prepared-runtime-"));
+  const { resolveTask } = await import("../src/resolved-task.ts");
+  const prepared = await resolveTask("Review", { cwd, jobOverrides: { maxIterations: 1 } });
+  const path = join(cwd, "prepared.json");
+  await writeFile(path, JSON.stringify({ ...prepared, runtime: { executor: "docker", workspace: "worktree", runtime: "my-preset" } }));
+  await assert.rejects(
+    execFileAsync("node", [CLI, "run", "Review", "--runner", "dry-run", "--executor", "host", "--workspace", "current"], {
+      cwd,
+      env: { ...process.env, RALPHWORKS_PREPARED_TASK: path },
+    }),
+  );
+  const { readFile } = await import("node:fs/promises");
+  const pointer = (await readFile(join(cwd, ".ralph", "current"), "utf8")).trim();
+  const snapshot = JSON.parse(await readFile(join(cwd, ".ralph", pointer, "task.json"), "utf8"));
+  assert.deepEqual(snapshot.runtime, { executor: "docker", workspace: "worktree", runtime: "my-preset" });
+});
+
+test("docker-clone forwards only explicit profile selection, preserving pushed YAML precedence", async () => {
+  const { chmod, readFile } = await import("node:fs/promises");
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-clone-precedence-"));
+  await mkdir(join(cwd, ".ralphworks"));
+  await mkdir(join(cwd, "bin"));
+  await writeFile(join(cwd, ".ralphworks", "config.json"), JSON.stringify({ version: 1, profile: "default-method" }));
+  const capture = join(cwd, "args.json");
+  const docker = join(cwd, "bin", "docker");
+  await writeFile(
+    docker,
+    '#!/usr/bin/env node\nrequire("node:fs").writeFileSync(process.env.CAPTURE,JSON.stringify(process.argv.slice(2)));\n',
+  );
+  await chmod(docker, 0o755);
+  const args = [CLI, "run", "job.yaml", "--executor", "docker-clone", "--repo", "acme/project", "--ref", "main", "--runner", "dry-run"];
+  const env = { ...process.env, PATH: `${join(cwd, "bin")}:${process.env.PATH}`, CAPTURE: capture, RALPHWORKS_HOME: join(cwd, "personal") };
+  await execFileAsync("node", args, { cwd, env });
+  let captured = JSON.parse(await readFile(capture, "utf8")) as string[];
+  assert.ok(!captured.some((value) => value.startsWith("RALPHWORKS_PROFILE=")));
+  await execFileAsync("node", [...args, "--profile", "explicit-method"], { cwd, env });
+  captured = JSON.parse(await readFile(capture, "utf8")) as string[];
+  assert.ok(captured.includes("RALPHWORKS_PROFILE=explicit-method"));
+});

@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "model": "local-proxy/REPLACE_WITH_YOUR_MODEL_ID",
+  "piAgentDir": "../pi/local-proxy",
+  "passEnv": ["LOCAL_MODEL_API_KEY"]
+}

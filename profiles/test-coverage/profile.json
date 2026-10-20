@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "name": "test-coverage",
+  "description": "Improve meaningful coverage and test reliability using measured evidence",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:brooks-test"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "targetCoverage": {
+      "type": "number",
+      "default": 85
+    },
+    "includeIntegration": {
+      "type": "boolean",
+      "default": true
+    },
+    "includeE2E": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["COVERAGE_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "COVERAGE_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ],
+  "category": "quality"
+}

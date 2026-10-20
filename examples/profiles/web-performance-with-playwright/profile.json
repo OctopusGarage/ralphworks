@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "web-performance-with-playwright",
+  "description": "Web performance with playwright",
+  "extends": ["builtin:performance"],
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:web-performance", "builtin:playwright-cli"],
+  "environment": {
+    "resourceInheritance": "none",
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  }
+}

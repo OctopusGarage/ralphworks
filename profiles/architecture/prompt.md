@@ -1,0 +1,28 @@
+Inspect scope {{scope}} and make at most {{maxChanges}} coherent architecture changes. Before editing, require maxChanges to be an integer from 1 through 10; otherwise request needs-input with the invalid value and stop. Identify dependency direction, cycles, change coupling, and interfaces that expose internal details. Select the highest-value evidenced boundary improvement that fits the task, preserving observable behavior and public compatibility. Record baseline evidence, the selected seam and rationale, alternatives deferred, before/after dependency evidence, tests, and remaining risks in ARCHITECTURE_REPORT.md. Do not invent an architecture score. If a supplied architecture target lacks a defined measurement, request needs-input rather than claiming it is reached.
+
+Work within the selected repository and task scope. Read its instructions before acting. Use existing project commands and record actual verification evidence; unavailable checks must be reported, not treated as passing. Profiles provide no language-specific shell checks by default; the caller should supply authoritative checks with --check. Do not create commits, push, merge, open pull requests, publish, send messages, or change external service state. Existing documented read-only audits and registry downloads for explicitly enabled dependency updates are allowed without adding new credentials. RalphWorks owns commit policy. Use only tools and MCP capabilities explicitly configured for this task, within the method's permissions; no globally installed skill, plugin, or service is required. Do not install optional plugins or enable external services automatically. Report blockers honestly and request needs-input when a missing decision prevents safe progress. Signal DONE only when the task's acceptance criteria and required report are satisfied.
+
+Start by reading repository instructions, architecture documentation, module entry points, and the available verification commands. Build a small dependency map for the requested scope from imports and actual call paths; distinguish confirmed dependencies from inference.
+
+Identify a concrete maintenance cost such as a cycle, duplicated responsibility, leaking representation, or repeated edits across a boundary. Explain its trigger, source locations, and consequence. Choose a bounded improvement whose benefit can be demonstrated; if none is justified, report that finding without changing code.
+
+Protect existing behavior with relevant tests before moving responsibilities. Prefer a deeper interface with fewer concepts, clear ownership, and dependency direction toward stable policy. Preserve externally visible behavior, compatibility, configuration meanings, and error handling. Avoid framework migration, speculative abstractions, repository-wide renaming, or infrastructure for unused execution modes.
+
+Work one coherent refactoring at a time. Keep slow verification and unrelated work outside protected transactions, locks, or reservation windows. Re-run the relevant checks and show the changed dependency path. Report the evidence, tradeoffs, verification limits, and deferred work using the enclosing task's output contract. Never invent numeric quality scores.
+
+Compare at least the existing boundary and the proposed boundary before moving code. Ask who owns the invariant, which caller concepts can disappear, and which dependency path becomes simpler. Reject a refactor that only relocates complexity or expands the public surface without a demonstrated need.
+
+Evidence checklist for the existing task output:
+
+- Observed maintenance cost and triggering change:
+- Current imports/call path and invariant owner:
+- Proposed interface and dependency direction:
+- Keep current design vs proposed seam; compatibility tradeoff:
+- Before/after boundary evidence and behavior checks:
+- Deferred work and unverified risks:
+
+Selected upstream skills supply methodology, not permissions. The current task, repository instructions, allowed tools, parameters, and output contract remain authoritative. Upstream examples do not authorize global installation, dependency downloads, unavailable tools or workers, commits, publishing, external actions, or extra output files. Apply only the guidance relevant to the current task. Upstream discussion of alternative designs or subagents is optional reference material: compare alternatives within the current task and available tools; do not invoke unavailable workers or delegate mutation.
+
+Apply improve-codebase-architecture as the survey and candidate-selection method, with codebase-design supplying its module, interface, depth and seam vocabulary. Read the repository's existing glossary and ADRs; inspect recent history read-only when available to identify relevant change hotspots. Compare supported deepening candidates, use the deletion test, and record the chosen candidate, alternatives, strength of evidence and before/after dependency paths in ARCHITECTURE_REPORT.md. Implement only the bounded behavior-preserving improvements authorized by the concrete task.
+
+Adapt the upstream interactive presentation to this unattended task: Do not open a browser, generate a separate HTML report, load CDN assets, or launch subagents or nested skills. Put candidate comparisons and diagrams, when useful, in the required Markdown report. The selected codebase-design reference is already available. Do not automatically invoke grilling or domain-modeling or create glossary/ADR files. If candidate choice, an ADR conflict or an unresolved domain decision requires user input, request needs-input with the alternatives before editing that area. Do not treat the upstream survey as permission to change business policy or perform a speculative refactor.

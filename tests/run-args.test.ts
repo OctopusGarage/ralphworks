@@ -155,3 +155,19 @@ test("parseRunArgs accepts contexts and job overrides", () => {
     },
   );
 });
+
+test("JSON job overrides reject task injection, unsupported keys and invalid limits", () => {
+  for (const overrides of [
+    { task: "replace task" },
+    { progressFile: "/outside" },
+    { maxIterations: 0 },
+    { maxMinutes: -1 },
+    { commit: "anything" },
+    { checkTimeoutSeconds: 0 },
+    { completionPromise: "" },
+    { checks: ["echo injected"] },
+  ]) {
+    const result = parseRunArgs([], { RALPHWORKS_JOB_OVERRIDES_JSON: JSON.stringify(overrides) });
+    assert.ok(result instanceof Error, JSON.stringify(overrides));
+  }
+});

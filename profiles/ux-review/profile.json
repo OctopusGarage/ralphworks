@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "name": "ux-review",
+  "description": "Review user journeys and usability with evidence-backed recommendations",
+  "category": "design",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:playwright-cli"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "maxFindings": {
+      "type": "number",
+      "default": 5
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["UX_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "UX_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

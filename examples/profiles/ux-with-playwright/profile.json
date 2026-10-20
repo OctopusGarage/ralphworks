@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "ux-with-playwright",
+  "description": "Ux with playwright",
+  "extends": ["builtin:ux-review"],
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:playwright-cli"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "write", "grep", "find", "ls"],
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  }
+}

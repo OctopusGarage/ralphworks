@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "mcp": {
+    "graph": {
+      "transport": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}

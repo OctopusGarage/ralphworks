@@ -1,20 +1,44 @@
 import { fork } from "node:child_process";
 import { fileURLToPath } from "node:url";
-
 import type { RalphJob } from "./job.ts";
+import type { McpBindings } from "./mcp-config.ts";
 import type { ModelRef } from "./run-args.ts";
 import type { AgentRunner, IterationResult } from "./runner.ts";
+import type { TaskEnvironment } from "./task-environment.ts";
 
 type WorkerReply = { result: IterationResult } | { error: string };
 
 export class PiProcessRunner implements AgentRunner {
-  private readonly options: { modelRef?: ModelRef; piAgentDir?: string; workerPath?: string };
+  private readonly options: {
+    modelRef?: ModelRef;
+    piAgentDir?: string;
+    skillPaths?: string[];
+    environment?: TaskEnvironment;
+    mcpBindings?: McpBindings;
+    workerPath?: string;
+  };
 
-  constructor(options: { modelRef?: ModelRef; piAgentDir?: string; workerPath?: string } = {}) {
+  constructor(
+    options: {
+      modelRef?: ModelRef;
+      piAgentDir?: string;
+      skillPaths?: string[];
+      environment?: TaskEnvironment;
+      mcpBindings?: McpBindings;
+      workerPath?: string;
+    } = {},
+  ) {
     this.options = options;
   }
 
-  runIteration(input: { job: RalphJob; iteration: number; cwd: string; progress: string; signal: AbortSignal }): Promise<IterationResult> {
+  runIteration(input: {
+    job: RalphJob;
+    iteration: number;
+    cwd: string;
+    progress: string;
+    signal: AbortSignal;
+    environment?: TaskEnvironment;
+  }): Promise<IterationResult> {
     const workerPath =
       this.options.workerPath ?? fileURLToPath(new URL(`./pi-worker.${import.meta.url.endsWith(".ts") ? "ts" : "js"}`, import.meta.url));
     return new Promise((resolve, reject) => {
@@ -67,7 +91,12 @@ export class PiProcessRunner implements AgentRunner {
       });
       input.signal.addEventListener("abort", abort, { once: true });
       if (input.signal.aborted) abort();
-      else child.send({ ...input, signal: undefined, options: this.options });
+      else
+        child.send({
+          ...input,
+          signal: undefined,
+          options: { ...this.options, environment: input.environment ?? this.options.environment },
+        });
     });
   }
 }

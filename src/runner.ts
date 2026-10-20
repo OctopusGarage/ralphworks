@@ -1,4 +1,5 @@
 import type { RalphJob } from "./job.ts";
+import type { TaskEnvironment } from "./task-environment.ts";
 
 export type IterationResult = {
   status: "continue" | "complete" | "blocked" | "needs_input";
@@ -14,7 +15,14 @@ export type RunnerEvent = {
 };
 
 export interface AgentRunner {
-  runIteration(input: { job: RalphJob; iteration: number; cwd: string; progress: string; signal: AbortSignal }): Promise<IterationResult>;
+  runIteration(input: {
+    job: RalphJob;
+    iteration: number;
+    cwd: string;
+    progress: string;
+    signal: AbortSignal;
+    environment?: TaskEnvironment;
+  }): Promise<IterationResult>;
 }
 
 export class DryRunRunner implements AgentRunner {

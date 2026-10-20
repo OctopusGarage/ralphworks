@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "name": "architecture",
+  "description": "Improve module boundaries through bounded, behavior-preserving refactoring",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:mattpocock-codebase-design", "builtin:mattpocock-improve-codebase-architecture"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "maxChanges": {
+      "type": "number",
+      "default": 3
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["ARCHITECTURE_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "ARCHITECTURE_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ],
+  "category": "quality"
+}

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "snapshot": "4aae51d9c149d3f6ce3af50486073429192bcba983ca24f3995765ae1eaf19a4",
+  "files": [
+    {
+      "path": ".upstream/LICENSE",
+      "sha256": "c122223ac43e86421958e18623979942c21b642951e2e3736dcb63eff13587c3",
+      "executable": 0
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "b0c220185d88c61f7770eb127d8facf86c86d2dd1fd82b86e15a4965a0137265",
+      "executable": 0
+    },
+    {
+      "path": "references/MEASUREMENT.md",
+      "sha256": "128f6f20c6c8fb55fcccd8b259cf680811022cf262dc55b03e9d623bcb555a99",
+      "executable": 0
+    },
+    {
+      "path": "references/RUM.md",
+      "sha256": "a2bdf660ecb23098afbadfb83254d39cef10c0da82938225f61271bad3f81b19",
+      "executable": 0
+    }
+  ]
+}

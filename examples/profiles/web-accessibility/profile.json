@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "name": "web-accessibility",
+  "description": "Optional web-specific accessibility guidance",
+  "category": "design",
+  "prompts": ["base.md", "prompt.md"],
+  "skills": ["builtin:web-accessibility"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "maxFixes": {
+      "type": "number",
+      "default": 3
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["ACCESSIBILITY_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "ACCESSIBILITY_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

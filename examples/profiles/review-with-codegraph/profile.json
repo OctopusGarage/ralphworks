@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "review-with-codegraph",
+  "description": "Review with codegraph",
+  "extends": ["builtin:code-review"],
+  "prompts": ["prompt.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "mcp": {
+      "graph": {
+        "tools": ["codegraph_explore"],
+        "required": false,
+        "timeoutSeconds": 30
+      }
+    }
+  }
+}

@@ -6,6 +6,8 @@ export type RalphJob = {
   name: string;
   task: string;
   promptFile?: string;
+  profile?: string;
+  providedFields?: string[];
   progressFile: string;
   completionPromise?: string;
   maxIterations: number;
@@ -42,14 +44,22 @@ export async function loadJob(jobPath: string): Promise<RalphJob> {
   return parseJob(text);
 }
 
-export async function prepareJob(job: RalphJob, cwd: string, contexts: string[]): Promise<RalphJob> {
-  let task = job.task;
-  if (job.promptFile) task += `\n\n${await readFile(resolveInputPath(cwd, job.promptFile), "utf8")}`;
-  if (contexts.length) task += await loadContexts(cwd, contexts);
+export async function prepareJob(
+  job: RalphJob,
+  cwd: string,
+  contexts: string[],
+  instructions = "",
+  identityInstructions = instructions,
+): Promise<RalphJob> {
+  let additional = "";
+  if (job.promptFile) additional += `\n\n${await readFile(resolveInputPath(cwd, job.promptFile), "utf8")}`;
+  if (contexts.length) additional += await loadContexts(cwd, contexts);
+  const task = job.task + (instructions ? `\n\n${instructions}` : "") + additional;
+  const identity = job.task + (identityInstructions ? `\n\n${identityInstructions}` : "") + additional;
   return {
     ...job,
     task,
-    progressFile: job.progressFile === defaultProgressFile(job.name, job.task) ? defaultProgressFile(job.name, task) : job.progressFile,
+    progressFile: job.progressFile === defaultProgressFile(job.name, job.task) ? defaultProgressFile(job.name, identity) : job.progressFile,
   };
 }
 
@@ -96,6 +106,8 @@ export function parseJob(text: string): RalphJob {
   return {
     name,
     task,
+    providedFields: Object.keys(raw),
+    ...(raw.profile !== undefined ? { profile: stringValue(raw.profile, "profile") } : {}),
     promptFile: optionalStringValue(raw.prompt_file),
     progressFile: optionalStringValue(raw.progress_file) ?? defaultProgressFile(name, task),
     completionPromise: optionalStringValue(raw.completion_promise) ?? "DONE",
@@ -137,6 +149,7 @@ function parseSimpleYaml(text: string): Record<string, unknown> {
     "name",
     "task",
     "prompt_file",
+    "profile",
     "progress_file",
     "completion_promise",
     "max_iterations",

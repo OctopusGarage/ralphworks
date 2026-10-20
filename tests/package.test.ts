@@ -11,9 +11,15 @@ test("package publishes compiled JavaScript CLI bins", async () => {
   });
   assert.deepEqual(pkg.files, [
     "dist/",
+    "examples/",
+    "profiles/",
+    "skills/",
     "docs/ARCHITECTURE.md",
     "docs/ISSUE_WORKFLOWS.md",
     "docs/USAGE.md",
+    "docs/TASK_PROFILES.md",
+    "docs/TASK_PROFILE_EVALUATION.md",
+    "docs/CAPABILITY_PROFILES.md",
     "docs/assets/ralphworks-overview.svg",
   ]);
   assert.equal(pkg.scripts.build, "tsc -p tsconfig.build.json");

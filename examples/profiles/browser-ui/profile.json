@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "browser-ui",
+  "description": "Implement UI changes with a browser MCP explicitly supplied by the runtime.",
+  "category": "design",
+  "extends": ["builtin:ui-implementation"],
+  "prompts": ["method.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "mcp": {
+      "browser": {
+        "required": true,
+        "timeoutSeconds": 60
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "docs-with-docs",
+  "description": "Docs with docs",
+  "extends": ["../docs-update"],
+  "prompts": ["prompt.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "mcp": {
+      "docs": {
+        "tools": ["resolve-library-id", "query-docs"],
+        "required": false,
+        "timeoutSeconds": 30
+      }
+    }
+  }
+}

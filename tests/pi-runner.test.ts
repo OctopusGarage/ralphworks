@@ -232,3 +232,107 @@ test("PiSdkRunner passes configured provider/model to the session factory", asyn
     },
   ]);
 });
+
+test("PiSdkRunner passes explicitly selected skills to resource discovery independently of model choice", async () => {
+  let captured: { skillPaths?: string[]; modelRef?: { provider: string; id: string } } | undefined;
+  const runner = new PiSdkRunner({
+    skillPaths: ["/library/review/SKILL.md"],
+    modelRef: { provider: "any-provider", id: "coder" },
+    createSession: async (input) => {
+      captured = input;
+      return { subscribe: () => () => {}, prompt: async () => {} };
+    },
+  });
+  await runner.runIteration({
+    job: {
+      name: "test",
+      task: "Review",
+      progressFile: "progress.md",
+      maxIterations: 1,
+      mode: "local",
+      checks: [],
+      checkTimeoutSeconds: 60,
+      commit: "none",
+    },
+    iteration: 1,
+    cwd: process.cwd(),
+  });
+  assert.deepEqual(captured?.skillPaths, ["/library/review/SKILL.md"]);
+  assert.equal(captured?.modelRef?.provider, "any-provider");
+});
+
+test("PiSdkRunner forwards task environment and awaits asynchronous session cleanup", async () => {
+  const { normalizeTaskEnvironment } = await import("../src/task-environment.ts");
+  const environment = normalizeTaskEnvironment({ tools: ["read"], mcp: { docs: { tools: ["lookup"] } } });
+  let closed = false;
+  const runner = new PiSdkRunner({
+    environment,
+    mcpBindings: { docs: { transport: "http", url: "http://localhost:9000/mcp" } },
+    createSession: async (input) => {
+      assert.deepEqual(input.environment, environment);
+      assert.ok(input.mcpBindings?.docs);
+      return {
+        subscribe: () => () => {},
+        prompt: async () => {},
+        dispose: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          closed = true;
+        },
+      };
+    },
+  });
+  await runner.runIteration({
+    job: {
+      name: "test",
+      task: "Read",
+      progressFile: "progress.md",
+      maxIterations: 1,
+      mode: "local",
+      checks: [],
+      checkTimeoutSeconds: 60,
+      commit: "none",
+    },
+    iteration: 1,
+    cwd: process.cwd(),
+  });
+  assert.equal(closed, true);
+});
+
+test("cancellation during asynchronous session creation prevents prompting and still disposes", async () => {
+  const controller = new AbortController();
+  let prompted = false;
+  let disposed = false;
+  const runner = new PiSdkRunner({
+    createSession: async () => {
+      controller.abort("cancel during startup");
+      return {
+        subscribe: () => () => {},
+        prompt: async () => {
+          prompted = true;
+        },
+        dispose: () => {
+          disposed = true;
+        },
+      };
+    },
+  });
+  await assert.rejects(
+    runner.runIteration({
+      job: {
+        name: "test",
+        task: "Read",
+        progressFile: "progress.md",
+        maxIterations: 1,
+        mode: "local",
+        checks: [],
+        checkTimeoutSeconds: 60,
+        commit: "none",
+      },
+      iteration: 1,
+      cwd: process.cwd(),
+      signal: controller.signal,
+    }),
+  );
+  assert.equal(prompted, false);
+  assert.equal(disposed, true);
+});

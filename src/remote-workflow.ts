@@ -96,7 +96,7 @@ export const REMOTE_WORKFLOW = [
   '            [ -n "$RALPHWORKS_AUTH_SECRET_VALUE" ] || { echo "Configured provider secret is empty" >&2; exit 1; }',
   '            export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"',
   "          fi",
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RALPH_TASK" --executor host',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RALPH_TASK" --executor host --workspace current',
   "      - name: Export inspectable patch",
   "        if: always()",
   "        run: |",

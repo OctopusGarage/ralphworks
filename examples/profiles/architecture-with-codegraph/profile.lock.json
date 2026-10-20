@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:mattpocock-codebase-design": {
+      "source": {
+        "source": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/codebase-design",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+      },
+      "scope": "builtin",
+      "snapshot": "9053baae04c550d02369b07fcdbb82038a017be0dfa2550de81d5b1ec023dce0",
+      "importedAt": "2026-10-20T09:41:56.998Z",
+      "use": "builtin:mattpocock-codebase-design"
+    }
+  }
+}

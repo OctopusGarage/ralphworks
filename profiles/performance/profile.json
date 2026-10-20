@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "name": "performance",
+  "description": "Improve measured bottlenecks with comparable before and after evidence",
+  "category": "quality",
+  "prompts": ["prompt.md"],
+  "skills": [],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    },
+    "maxChanges": {
+      "type": "number",
+      "default": 3
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["PERFORMANCE_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "PERFORMANCE_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

@@ -16,9 +16,15 @@
   },
   "files": [
     "dist/",
+    "examples/",
+    "profiles/",
+    "skills/",
     "docs/ARCHITECTURE.md",
     "docs/ISSUE_WORKFLOWS.md",
     "docs/USAGE.md",
+    "docs/TASK_PROFILES.md",
+    "docs/TASK_PROFILE_EVALUATION.md",
+    "docs/CAPABILITY_PROFILES.md",
     "docs/assets/ralphworks-overview.svg"
   ],
   "scripts": {
@@ -38,7 +44,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "^0.85.1"
+    "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@modelcontextprotocol/sdk": "^1.32.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
@@ -50,5 +57,10 @@
   "engines": {
     "node": ">=24"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "pnpm": {
+    "overrides": {
+      "@earendil-works/pi-coding-agent>undici": "8.10.2"
+    }
+  }
 }

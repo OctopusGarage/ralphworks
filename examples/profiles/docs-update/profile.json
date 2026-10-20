@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "docs-update",
+  "description": "Update accurate usable documentation",
+  "prompts": ["prompt.md"],
+  "skills": [],
+  "parameters": {},
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["DOCS_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "DOCS_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ],
+  "category": "delivery"
+}

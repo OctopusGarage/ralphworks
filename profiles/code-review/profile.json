@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "code-review",
+  "description": "Review correctness and maintainability",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:sentry-code-review"],
+  "parameters": {},
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": [],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [],
+  "category": "quality"
+}

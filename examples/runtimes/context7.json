@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "mcp": {
+    "docs": {
+      "transport": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "Authorization": "CONTEXT7_AUTHORIZATION"
+      }
+    }
+  }
+}
