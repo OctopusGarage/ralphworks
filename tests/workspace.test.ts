@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { prepareWorkspace } from "../src/workspace.ts";
 
-async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "ralph-workspace-"));
+async function fixture(t: TestContext) {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "ralph-workspace-")));
+  t.after(() => rm(root, { recursive: true, force: true }));
   const cwd = join(root, "source");
   execFileSync("git", ["init", "-q", cwd]);
   await writeFile(join(cwd, "file.txt"), "baseline");
@@ -16,8 +17,8 @@ async function fixture() {
   return { root, cwd };
 }
 
-test("worktree creates a retained branch from HEAD and leaves source unchanged", async () => {
-  const { root, cwd } = await fixture();
+test("workspace preparation records an owned branch from HEAD and leaves source unchanged", async (t) => {
+  const { root, cwd } = await fixture(t);
   const workspace = await prepareWorkspace(cwd, { kind: "worktree", path: join(root, "task") });
   assert.equal(workspace.cwd, join(root, "task"));
   assert.match(workspace.branch ?? "", /^ralphworks\//);
@@ -29,15 +30,16 @@ test("worktree creates a retained branch from HEAD and leaves source unchanged",
   await assert.rejects(prepareWorkspace(cwd, { kind: "worktree", path: workspace.cwd }), /exist/);
 });
 
-test("worktree refuses dirty baselines while current workspace accepts edits", async () => {
-  const { cwd } = await fixture();
+test("worktree refuses dirty baselines while current workspace accepts edits", async (t) => {
+  const { cwd } = await fixture(t);
   await writeFile(join(cwd, "file.txt"), "user edit");
   await assert.rejects(prepareWorkspace(cwd, { kind: "worktree" }), /clean Git workspace/);
   assert.equal((await prepareWorkspace(cwd, { kind: "current" })).cwd, cwd);
 });
 
-test("worktree requires a repository root and current mode works without Git", async () => {
+test("worktree requires a repository root and current mode works without Git", async (t) => {
   const cwd = await mkdtemp(join(tmpdir(), "ralph-no-git-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
   assert.equal((await prepareWorkspace(cwd, { kind: "current" })).cwd, cwd);
   await assert.rejects(prepareWorkspace(cwd, { kind: "worktree" }), /Git/);
 });

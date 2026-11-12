@@ -22,6 +22,7 @@
     "docs/ARCHITECTURE.md",
     "docs/ISSUE_WORKFLOWS.md",
     "docs/USAGE.md",
+    "docs/schemas/",
     "docs/TASK_PROFILES.md",
     "docs/TASK_PROFILE_EVALUATION.md",
     "docs/CAPABILITY_PROFILES.md",
@@ -35,8 +36,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --test-concurrency=1",
-    "test:coverage": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=80 --test-coverage-branches=75 --test-coverage-functions=80",
+    "test": "node scripts/run-tests.mjs tests/*.test.ts",
+    "test:coverage": "node scripts/run-tests.mjs --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=80 --test-coverage-branches=75 --test-coverage-functions=80 tests/*.test.ts",
     "verify:workflows": "node scripts/verify-workflows.mjs",
     "knip": "knip",
     "audit": "pnpm audit --audit-level high",
@@ -60,7 +61,8 @@
   "license": "MIT",
   "pnpm": {
     "overrides": {
-      "@earendil-works/pi-coding-agent>undici": "8.10.2"
+      "@earendil-works/pi-coding-agent>minimatch": "11.0.1",
+      "@earendil-works/pi-coding-agent>undici": "8.12.2"
     }
   }
 }

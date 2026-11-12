@@ -61,3 +61,62 @@ test("an agent completion signal cannot bypass task output requirements", async 
   assert.equal(result.checks[0].exitCode, 1);
   assert.equal(result.checks[1].exitCode, 0);
 });
+
+test("declared output symlinks block before the agent can overwrite an outside file", async () => {
+  const { readFile, symlink } = await import("node:fs/promises");
+  for (const nested of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), "ralph-output-boundary-"));
+    const cwd = join(root, "workspace");
+    const outside = join(root, "outside");
+    await mkdir(cwd);
+    await mkdir(outside);
+    const victim = join(outside, "CODE_REVIEW.json");
+    await writeFile(victim, "original outside content");
+    const output = nested ? "reports/CODE_REVIEW.json" : "CODE_REVIEW.json";
+    await symlink(nested ? outside : victim, join(cwd, nested ? "reports" : "CODE_REVIEW.json"));
+    const profile = join(root, "profile.json");
+    await writeFile(profile, JSON.stringify({ version: 1, name: "boundary", outputs: [{ path: output, format: "json" }] }));
+    let called = false;
+    const result = await runLocalJob("Write the report", {
+      cwd,
+      profile,
+      runner: {
+        async runIteration() {
+          called = true;
+          await writeFile(join(cwd, output), "{}");
+          return { status: "continue", summary: "Report written", output: "<promise>DONE</promise>" };
+        },
+      },
+    });
+    assert.equal(called, false, "unsafe declared output must block before invoking the agent");
+    assert.equal(result.status, "blocked");
+    assert.equal(result.iterations, 0);
+    assert.match(result.reason ?? "", /output.*symlink/i);
+    assert.equal(await readFile(victim, "utf8"), "original outside content");
+    assert.equal(JSON.parse(await readFile(result.resultPath, "utf8")).status, "blocked");
+  }
+});
+
+test("safe existing regular reports and missing report directories still allow execution", async () => {
+  for (const output of ["ARCHITECTURE_REPORT.md", "reports/review.json"]) {
+    const cwd = await mkdtemp(join(tmpdir(), "ralph-output-regular-"));
+    const profile = join(cwd, "profile.json");
+    await writeFile(profile, JSON.stringify({ version: 1, name: "regular", outputs: [{ path: output }] }));
+    if (!output.includes("/")) await writeFile(join(cwd, output), "Prior report");
+    let calls = 0;
+    const result = await runLocalJob("Update the report", {
+      cwd,
+      profile,
+      runner: {
+        async runIteration() {
+          calls++;
+          await mkdir(join(cwd, "reports"), { recursive: true });
+          await writeFile(join(cwd, output), "Updated report");
+          return { status: "continue", summary: "Report written", output: "<promise>DONE</promise>" };
+        },
+      },
+    });
+    assert.equal(result.status, "completed");
+    assert.equal(calls, 1);
+  }
+});

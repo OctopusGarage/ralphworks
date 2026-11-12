@@ -14,6 +14,9 @@ type ParameterDescriptor = {
   default?: string | number | boolean;
   required?: boolean;
   enum?: (string | number | boolean)[];
+  integer?: boolean;
+  minimum?: number;
+  maximum?: number;
 };
 type Parameter = string | null | ParameterDescriptor;
 type LibraryOptions = { cwd: string; home?: string };
@@ -91,10 +94,13 @@ export async function resolveTaskProfile(
   for (const path of profile.prompts) sections.push(await readFile(path, "utf8"));
   for (const path of profile.skills) sections.push(`Skill: ${path}\n\n${await readFile(path, "utf8")}`);
   if (profile.artifacts.length) sections.push(`Expected artifacts:\n${profile.artifacts.map((path) => `- ${path}`).join("\n")}`);
-  const task = sections.join("\n\n").replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_match, key: string) => {
+  const instructions = sections.join("\n\n").replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_match, key: string) => {
     if (!Object.hasOwn(parameters, key)) throw new Error(`Unresolved profile parameter: ${key}`);
     return parameters[key];
   });
+  const task = Object.keys(parameters).length
+    ? `Effective task parameters (validated by RalphWorks; JSON data):\n${JSON.stringify(parameters)}\n\n${instructions}`
+    : instructions;
   await sources.save();
   return {
     name: profile.name,
@@ -509,13 +515,23 @@ function mergeEnvironment(layers: Partial<TaskEnvironment>[]): TaskEnvironment {
 function validateParameter(key: string, value: unknown): void {
   if (value === null || typeof value === "string") return;
   const raw = object(value, `parameter ${key}`);
-  if (Object.keys(raw).some((field) => !["type", "default", "required", "enum"].includes(field)))
+  if (Object.keys(raw).some((field) => !["type", "default", "required", "enum", "integer", "minimum", "maximum"].includes(field)))
     throw new Error(`Invalid profile parameter: ${key}`);
   if (!["string", "number", "boolean"].includes(raw.type as string)) throw new Error(`Invalid profile parameter type: ${key}`);
   if (raw.required !== undefined && typeof raw.required !== "boolean") throw new Error(`Invalid parameter required: ${key}`);
   if (raw.default === undefined && raw.required !== true) throw new Error(`Parameter ${key} needs a default or required: true`);
   if (raw.default !== undefined && (typeof raw.default !== raw.type || (typeof raw.default === "number" && !Number.isFinite(raw.default))))
     throw new Error(`Invalid parameter default: ${key}`);
+  if (["integer", "minimum", "maximum"].some((field) => raw[field] !== undefined) && raw.type !== "number")
+    throw new Error(`Numeric constraints require a number parameter: ${key}`);
+  if (raw.integer !== undefined && typeof raw.integer !== "boolean") throw new Error(`Invalid parameter integer constraint: ${key}`);
+  for (const field of ["minimum", "maximum"])
+    if (raw[field] !== undefined && (typeof raw[field] !== "number" || !Number.isFinite(raw[field])))
+      throw new Error(`Invalid parameter ${field}: ${key}`);
+  if (typeof raw.minimum === "number" && typeof raw.maximum === "number" && raw.minimum > raw.maximum)
+    throw new Error(`Parameter minimum exceeds maximum: ${key}`);
+  const descriptor = raw as ParameterDescriptor;
+  if (typeof raw.default === "number") validateNumericValue(key, descriptor, raw.default);
   if (raw.enum !== undefined) {
     if (
       !Array.isArray(raw.enum) ||
@@ -524,6 +540,7 @@ function validateParameter(key: string, value: unknown): void {
     )
       throw new Error(`Invalid parameter enum: ${key}`);
     if (raw.default !== undefined && !raw.enum.includes(raw.default)) throw new Error(`Parameter default is outside enum: ${key}`);
+    for (const entry of raw.enum) if (typeof entry === "number") validateNumericValue(key, descriptor, entry);
   }
 }
 function resolveParameter(key: string, declaration: Parameter, supplied?: string): string {
@@ -543,7 +560,16 @@ function resolveParameter(key: string, declaration: Parameter, supplied?: string
     value = supplied === "true";
   }
   if (declaration.enum && !declaration.enum.includes(value)) throw new Error(`Parameter ${key} is outside enum`);
+  if (typeof value === "number") validateNumericValue(key, declaration, value);
   return String(value);
+}
+
+function validateNumericValue(key: string, declaration: ParameterDescriptor, value: number): void {
+  if (declaration.integer && !Number.isInteger(value)) throw new Error(`Parameter ${key} must be an integer`);
+  if (declaration.minimum !== undefined && value < declaration.minimum)
+    throw new Error(`Parameter ${key} must be at least ${declaration.minimum}`);
+  if (declaration.maximum !== undefined && value > declaration.maximum)
+    throw new Error(`Parameter ${key} must be at most ${declaration.maximum}`);
 }
 
 export async function updateProfileSkills(selector: string, options: LibraryOptions): Promise<SkillUpdate[]> {

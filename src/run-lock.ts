@@ -1,13 +1,20 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const STALE_MS = 60_000;
 
-export async function withRunLock<T>(cwd: string, run: () => Promise<T>): Promise<T> {
+export async function withRunLock<T>(cwd: string, run: () => Promise<T>, options: { existingOnly?: boolean } = {}): Promise<T> {
   const lockDir = join(cwd, ".ralph", "run.lock");
   const ownerPath = join(lockDir, "owner");
-  await mkdir(join(cwd, ".ralph"), { recursive: true });
+  const state = join(cwd, ".ralph");
+  if (options.existingOnly) {
+    // Never recreate a worktree that another cleaner removed after our identity check.
+    await mkdir(state).catch((error) => {
+      if (!isExists(error)) throw error;
+    });
+    if (!(await lstat(state)).isDirectory()) throw new Error("Cleanup lock directory is not a regular directory");
+  } else await mkdir(state, { recursive: true });
   try {
     await mkdir(lockDir);
   } catch (error) {

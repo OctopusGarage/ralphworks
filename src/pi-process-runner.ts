@@ -16,6 +16,7 @@ export class PiProcessRunner implements AgentRunner {
     environment?: TaskEnvironment;
     mcpBindings?: McpBindings;
     workerPath?: string;
+    onSpawn?: (pid: number) => void;
   };
 
   constructor(
@@ -26,6 +27,7 @@ export class PiProcessRunner implements AgentRunner {
       environment?: TaskEnvironment;
       mcpBindings?: McpBindings;
       workerPath?: string;
+      onSpawn?: (pid: number) => void;
     } = {},
   ) {
     this.options = options;
@@ -37,6 +39,7 @@ export class PiProcessRunner implements AgentRunner {
     cwd: string;
     progress: string;
     signal: AbortSignal;
+    deadline?: number;
     environment?: TaskEnvironment;
   }): Promise<IterationResult> {
     const workerPath =
@@ -48,6 +51,7 @@ export class PiProcessRunner implements AgentRunner {
         execArgv: [],
         stdio: ["ignore", "pipe", "pipe", "ipc"],
       });
+      this.options.onSpawn?.(child.pid ?? 0);
       let reply: WorkerReply | undefined;
       let diagnostics = "";
       let killed = false;

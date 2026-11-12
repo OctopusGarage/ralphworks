@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -8,6 +8,84 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 const CLI = resolve("src/cli.ts");
+
+for (const args of [
+  ["run", "--help"],
+  ["run", "-h"],
+  ["run", "task", "--help"],
+  ["plan", "--help"],
+  ["plan", "task", "-h"],
+  ["--help", "run"],
+]) {
+  test(`CLI ${args.join(" ")} prints usage before resolving execution inputs`, async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-help-"));
+    const worktree = join(workspace, "task-worktree");
+    const invalidSelection = args.includes("task") ? "--profile" : "--runtime";
+    const { stdout, stderr } = await execFileAsync(
+      "node",
+      [
+        CLI,
+        ...args,
+        "--runner",
+        "dry-run",
+        invalidSelection,
+        join(workspace, "missing.json"),
+        "--workspace",
+        "worktree",
+        "--worktree-path",
+        worktree,
+      ],
+      { cwd: workspace },
+    );
+
+    assert.match(stdout, /^RalphWorks\n\nUsage:/);
+    assert.equal(stderr, "");
+    await assert.rejects(stat(join(workspace, ".ralph")), { code: "ENOENT" });
+    await assert.rejects(stat(worktree), { code: "ENOENT" });
+  });
+}
+
+test("CLI help before the end-of-options marker prints usage", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-help-"));
+  const { stdout } = await execFileAsync("node", [CLI, "plan", "task", "--runner", "dry-run", "--help", "--", "ignored"], {
+    cwd: workspace,
+  });
+  assert.match(stdout, /^RalphWorks\n\nUsage:/);
+  await assert.rejects(stat(join(workspace, ".ralph")), { code: "ENOENT" });
+});
+
+test("CLI help after the end-of-options marker does not request usage", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-help-"));
+  await assert.rejects(
+    execFileAsync("node", [CLI, "run", "task", "--runner", "dry-run", "--", "--help"], { cwd: workspace }),
+    (error: unknown) => {
+      assert.doesNotMatch(String((error as { stdout?: string }).stdout), /Usage:/);
+      assert.match(String((error as { stderr?: string }).stderr), /Unknown option: --/);
+      return true;
+    },
+  );
+  await assert.rejects(stat(join(workspace, ".ralph")), { code: "ENOENT" });
+});
+
+for (const value of ["--help", "-h", "--"]) {
+  test(`CLI plan preserves the completion promise option value ${value}`, async () => {
+    const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-help-value-"));
+    const { stdout } = await execFileAsync("node", [CLI, "plan", "task", "--runner", "dry-run", "--completion-promise", value], {
+      cwd: workspace,
+    });
+    assert.equal(JSON.parse(stdout).job.completionPromise, value);
+    await assert.rejects(stat(join(workspace, ".ralph")), { code: "ENOENT" });
+  });
+}
+
+test("CLI help remains recognized after a literal delimiter option value", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-help-value-"));
+  const { stdout } = await execFileAsync("node", [CLI, "plan", "task", "--runner", "dry-run", "--completion-promise", "--", "--help"], {
+    cwd: workspace,
+  });
+  assert.match(stdout, /^RalphWorks\n\nUsage:/);
+  await assert.rejects(stat(join(workspace, ".ralph")), { code: "ENOENT" });
+});
 
 test("CLI init scaffolds a minimal GitHub Actions entrypoint", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-cli-"));
@@ -315,13 +393,15 @@ test("CLI profiles collects, lists, shows and removes a personal task bundle", a
   );
 });
 
-test("CLI worktree runs retain task records and leave source files unchanged", async () => {
+test("CLI --keep-worktree retains task records and leaves source files unchanged", async (t) => {
   const cwd = await mkdtemp(join(tmpdir(), "ralphworks-worktree-cli-"));
+  t.after(() => rm(cwd, { recursive: true, force: true }));
   await execFileAsync("git", ["init", "-q"], { cwd });
   await writeFile(join(cwd, "file.txt"), "source");
   await execFileAsync("git", ["add", "."], { cwd });
   await execFileAsync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-qm", "initial"], { cwd });
   const worktree = join(cwd, "..", `task-${Date.now()}`);
+  t.after(() => rm(worktree, { recursive: true, force: true }));
   await assert.rejects(
     execFileAsync(
       "node",
@@ -335,6 +415,7 @@ test("CLI worktree runs retain task records and leave source files unchanged", a
         "worktree",
         "--worktree-path",
         worktree,
+        "--keep-worktree",
         "--max-iterations",
         "1",
         "--check",
@@ -391,4 +472,33 @@ test("docker-clone forwards only explicit profile selection, preserving pushed Y
   await execFileAsync("node", [...args, "--profile", "explicit-method"], { cwd, env });
   captured = JSON.parse(await readFile(capture, "utf8")) as string[];
   assert.ok(captured.includes("RALPHWORKS_PROFILE=explicit-method"));
+});
+
+test("CLI rejects out-of-range profile inputs before workspace creation or checks", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-invalid-profile-"));
+  await assert.rejects(
+    execFileAsync(
+      "node",
+      [
+        CLI,
+        "run",
+        "Improve boundaries",
+        "--profile",
+        "builtin:architecture",
+        "--param",
+        "maxChanges=0",
+        "--workspace",
+        "worktree",
+        "--check",
+        "touch check-ran",
+      ],
+      { cwd: workspace },
+    ),
+    (error: unknown) => {
+      assert.match(String((error as { stderr?: string }).stderr), /maxChanges.*at least 1/);
+      assert.doesNotMatch(String((error as { stdout?: string }).stdout), /workspace=/);
+      return true;
+    },
+  );
+  for (const path of [".ralph", "check-ran"]) await assert.rejects(stat(join(workspace, path)), { code: "ENOENT" });
 });

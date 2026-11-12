@@ -11,9 +11,16 @@ export type CheckResult = {
   cancelled?: boolean;
 };
 
-export function runCheck(command: string, cwd: string, timeoutMs: number, signal?: AbortSignal): Promise<CheckResult> {
+export function runCheck(
+  command: string,
+  cwd: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+  onSpawn?: (pid: number) => void,
+): Promise<CheckResult> {
   return new Promise((resolveCheck) => {
     const child = spawn(command, { cwd, shell: true, detached: process.platform !== "win32", stdio: ["ignore", "pipe", "pipe"] });
+    onSpawn?.(child.pid ?? 0);
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -56,6 +63,8 @@ export function runCheck(command: string, cwd: string, timeoutMs: number, signal
       settled = true;
       clearTimeout(timer);
       if (killTimer) clearTimeout(killTimer);
+      // A closed shell can leave descendants with ignored stdio in its group.
+      if (timedOut || cancelled) killGroup("SIGKILL");
       signal?.removeEventListener("abort", abort);
       resolveCheck({
         command,

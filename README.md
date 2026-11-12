@@ -40,7 +40,7 @@ ralphworks run 'Fix the login error' --profile builtin:bugfix --workspace worktr
 
 There are nine [built-in task profiles](docs/TASK_PROFILES.md): bugfix, domain modeling, code review, architecture improvement, test coverage and quality, security maintenance, performance, UI implementation, and UX review. Bugfix supports reported defects and bounded proactive discovery. Bugfix, UI implementation and UX review include Playwright CLI for browser inspection and verification; prepare the executable and browsers in the chosen executor. Architecture selects Matt Pocock's improve-codebase-architecture and codebase-design skills; coverage adds the complete Brooks test-quality method. Selected skills are archived upstream snapshots with licenses and exact provenance. Generic coding and documentation methods remain optional examples; ordinary tasks can run directly without a profile. [Explicit capability combinations](docs/CAPABILITY_PROFILES.md) add browser verification, Context7, CodeGraph, or standalone DeepWiki research without global settings. Collect a profile with `ralphworks profiles add builtin:bugfix my-bugfix`, then customize its personal files. Project and personal names can override built-ins; `builtin:NAME` selects the shipped version. Agent resource discovery defaults to off, including runs without a profile. Profiles can opt into project resources or both project and global resources. MCP connections belong in runtimes; profiles declare capabilities. Model providers and execution choices remain independent.
 
-`plan` prints resolved JSON without running the agent or creating a worktree. `--workspace worktree` requires a clean Git repository and creates a retained task branch and worktree from HEAD. Review the reported path and branch afterward. Task profiles contain the working method; [runtime presets](docs/USAGE.md#runtime-presets-and-defaults) contain optional model and execution choices. A [local proxy example](examples/pi/local-proxy/models.json) uses Pi's native model configuration and is optional.
+`plan` prints resolved JSON without running the agent or creating a worktree. `--workspace worktree` requires a clean Git repository and creates an owned task worktree from HEAD. Host runs archive recoverable changes and remove that worktree after termination when ownership and process-use checks pass. The task branch and recovery commit reference remain in the source repository. Use `--keep-worktree` for deliberate inspection; current and caller-owned workspaces are never automatically removed. See [workspace cleanup and recovery](docs/USAGE.md#workspace-cleanup-and-recovery). Task profiles contain the working method; [runtime presets](docs/USAGE.md#runtime-presets-and-defaults) contain optional model and execution choices. A [local proxy example](examples/pi/local-proxy/models.json) uses Pi's native model configuration and is optional.
 
 The [Skill Hub](docs/USAGE.md#persistent-skill-hub) saves complete, immutable skill snapshots with content hashes and source provenance. Profiles explicitly select built-in, project, or personal skills and lock exact versions. Vendor snapshots into the project to keep tasks runnable after upstream deletion, across machines, and offline. Local paths and inline [GitHub skills](docs/USAGE.md#skills-from-github) remain supported.
 
@@ -54,7 +54,9 @@ See [task profiles](docs/USAGE.md#reusable-task-profiles) for authoring, inherit
 2. RalphWorks runs configured checks, validates required outputs, and records the outcome.
 3. A new Pi session receives that progress and continues. The loop stops on completion, a request for human input, a blocker, or an iteration, time, or cost limit.
 
-The default limit is **five iterations**. Progress and results live in `.ralph/`; inspect the latest run with `ralphworks status .ralph/current`. Completion requires the agent's completion signal and passing configured checks and output requirements. RalphWorks can commit passing iterations with `--commit verified`; otherwise it leaves changes for you to review.
+The default limit is **five iterations**. Current-workspace progress and results live in `.ralph/`; inspect the latest run with `ralphworks status .ralph/current`. Owned host worktrees keep their run records outside the removable tree and print the state and recovery paths. Completion requires the agent's completion signal and passing configured checks and output requirements. RalphWorks can commit passing iterations with `--commit verified`; otherwise it leaves changes for you to review.
+
+Host runs can keep runtime records and staged resources outside the project with `--state-dir ../task-state`. Inspect them with `ralphworks status ../task-state/current`. The worktree lock remains in the project's `.ralph/run.lock`, so choosing different state directories never permits concurrent writers to the same worktree.
 
 ## Give it a task
 
@@ -79,7 +81,7 @@ ralphworks run ./docs/feature.md --check 'npm test' --commit verified --max-minu
 | Mode | Command | Result |
 | --- | --- | --- |
 | Host | `ralphworks run task.md` | Edits the current worktree. |
-| Task worktree | `ralphworks run task.md --workspace worktree` | Edits a new retained branch and worktree. |
+| Task worktree | `ralphworks run task.md --workspace worktree` | Edits an owned worktree; host runs archive changes and remove it after termination. |
 | Docker mount | `ralphworks run task.md --executor docker` | Edits the mounted worktree. |
 | Docker clone | `ralphworks run task.md --executor docker-clone --repo owner/repo --ref branch` | Exports a patch from a clean clone. |
 | GitHub Actions | `ralphworks remote task.md --repo owner/repo --ref branch` | Downloads a patch and run records. |

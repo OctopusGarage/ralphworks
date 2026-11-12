@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { reviewCommand } from "./code-review-result.ts";
 import { inferGitContext } from "./git-context.ts";
 import { initProject } from "./init.ts";
 import { profileCommand } from "./profile-command.ts";
@@ -9,16 +10,21 @@ import { runTaskCommand } from "./run-command.ts";
 import { skillCommand } from "./skill-command.ts";
 import { readRunStatus } from "./status.ts";
 import { readTrace } from "./trace.ts";
+import { workspaceCommand } from "./workspace-lifecycle.ts";
 
 const USAGE = `RalphWorks
 
 Usage:
   ralphworks init
-  ralphworks run <task-text|task-file|job.yaml> [--profile NAME|PATH] [--param key=value] [--runtime NAME|PATH] [--workspace current|worktree] [--worktree-path PATH] [--context PATH] [--runner dry-run|pi] [--executor host|docker|docker-clone] [--model provider/model] [--check COMMAND] [--max-iterations N] [--max-minutes N] [--total-minutes N] [--max-cost-usd N] [--check-timeout N] [--commit none|verified] [--completion-promise VALUE] [--pass-env NAME] [--pi-agent-dir PATH]
+  ralphworks run <task-text|task-file|job.yaml> [--profile NAME|PATH] [--param key=value] [--runtime NAME|PATH] [--workspace current|worktree] [--worktree-path PATH] [--context PATH] [--runner dry-run|pi] [--executor host|docker|docker-clone] [--model provider/model] [--check COMMAND] [--max-iterations N] [--max-minutes N] [--total-minutes N] [--max-cost-usd N] [--check-timeout N] [--commit none|verified] [--completion-promise VALUE] [--pass-env NAME] [--pi-agent-dir PATH] [--result-file PATH --invocation-id ID]
   ralphworks plan <task-text|task-file|job.yaml> [run options]
+  Host run/plan: --state-dir PATH (runtime state; default .ralph)
+  Owned worktrees: --keep-worktree (retain instead of automatic recovery archive and removal)
+  ralphworks workspaces list|prune [--state-dir PATH] [--dry-run]
   ralphworks profiles list|show|add|update|vendor|remove [arguments]
   ralphworks skills list|add|update|inspect|verify|export|import|fork [arguments]
   ralphworks remote <task-file|job.yaml> [--repo owner/name] [--ref branch] [--resume-from RUN_ID] [--total-minutes N]
+  ralphworks review validate <file> [--base-sha SHA] [--head-sha SHA] [--diff-sha256 HASH]
   ralphworks status <run-dir>
   ralphworks trace <events.jsonl>
 
@@ -27,8 +33,15 @@ RalphWorks is a bounded Ralph loop orchestrator powered by Pi.
 
 async function main(argv: string[]): Promise<number> {
   const [command, target, ...rest] = argv;
+  const runOptions = command === "run" || command === "plan" ? parseRunArgs(rest, {}, { allowHelp: true }) : undefined;
+  const helpRequested =
+    command === "-h" ||
+    command === "--help" ||
+    target === "-h" ||
+    target === "--help" ||
+    (runOptions !== undefined && !(runOptions instanceof Error) && runOptions.help === true);
 
-  if (!command || command === "-h" || command === "--help") {
+  if (!command || helpRequested) {
     console.log(USAGE.trimEnd());
     return 0;
   }
@@ -48,8 +61,10 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
+  if (command === "review") return reviewCommand(target, rest);
   if (command === "skills") return skillCommand(target, rest);
   if (command === "profiles") return profileCommand(target, rest);
+  if (command === "workspaces") return workspaceCommand(target, rest);
 
   if (!target) {
     console.error(`Missing target for command: ${command}`);

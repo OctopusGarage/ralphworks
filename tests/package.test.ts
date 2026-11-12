@@ -17,6 +17,7 @@ test("package publishes compiled JavaScript CLI bins", async () => {
     "docs/ARCHITECTURE.md",
     "docs/ISSUE_WORKFLOWS.md",
     "docs/USAGE.md",
+    "docs/schemas/",
     "docs/TASK_PROFILES.md",
     "docs/TASK_PROFILE_EVALUATION.md",
     "docs/CAPABILITY_PROFILES.md",

@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RalphWorks terminal invocation receipt v1",
+  "description": "Local execution facts for an explicitly correlated invocation. This receipt does not replace a caller acceptance gate or provide OS isolation.",
+  "type": "object",
+  "required": ["schemaVersion", "invocationId", "startedAt", "finishedAt", "workspace", "taskInputSha256", "profile", "result", "outputs"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "invocationId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workspace": {
+      "type": "object",
+      "required": ["path", "baseHead", "head"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "baseHead": {
+          "type": ["string", "null"]
+        },
+        "head": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "taskInputSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "profile": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["name", "fingerprint"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "result": {
+      "type": "object",
+      "required": ["jobName", "status", "iterations", "runDir", "eventsPath", "resultPath", "checks", "costUsd", "commits"],
+      "properties": {
+        "jobName": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["completed", "blocked", "needs_input", "cancelled", "max_iterations", "timed_out", "budget_exhausted", "failed"]
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runDir": {
+          "type": "string"
+        },
+        "eventsPath": {
+          "type": "string"
+        },
+        "resultPath": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["iteration", "command", "exitCode", "stdout", "stderr"],
+            "properties": {
+              "iteration": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "command": {
+                "type": "string"
+              },
+              "exitCode": {
+                "type": "integer"
+              },
+              "stdout": {
+                "type": "string"
+              },
+              "stderr": {
+                "type": "string"
+              },
+              "timedOut": {
+                "type": "boolean"
+              },
+              "cancelled": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "costUsd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason": {
+          "type": "string"
+        },
+        "lastSummary": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "required", "format", "sha256"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "format": {
+            "enum": ["text", "json"]
+          },
+          "sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

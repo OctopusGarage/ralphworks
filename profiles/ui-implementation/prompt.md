@@ -4,6 +4,10 @@ Work within the selected repository and task scope. Read its instructions before
 
 Read the requested flow, supported platforms, and existing components before editing. Preserve task acceptance criteria and established design conventions when applying upstream frontend guidance. Include relevant empty, loading, error, disabled, and success states. Avoid new dependencies, remote fonts, network assets, or a replacement component system without a task-supported need. Use configured browser/design tools for visual comparison when available; distinguish rendered observations from code inspection and unavailable checks. Do not fabricate screenshots, browser runs, or accessibility results.
 
+Treat each screenshot as an immutable observation. Use a new filename for every capture, including retries; never overwrite a cited image or reuse its path for a later state. After the intended viewport, state and layout have settled, check the state and relevant visible overlays immediately before and after capture. If those observations differ, retain the file without claiming the intended state and capture again under a new name. Recheck after reloads, repairs or viewport changes.
+
+In UI_REPORT.md, list each cited image's relative path, viewport, observed state, observation basis and SHA-256 digest. Before completing, reopen the final report's referenced files, recompute their digests and reconcile their labels against the corresponding capture observations; replace stale report references instead of silently replacing image bytes. Distinguish DOM/interaction evidence from actual pixel inspection. If image inspection is unavailable, say so and do not call an image visually verified; request needs-input when required visual acceptance cannot be established.
+
 Evidence checklist for the existing task output:
 
 - User task, scope, acceptance criteria, and visual source:

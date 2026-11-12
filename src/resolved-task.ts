@@ -3,6 +3,7 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { loadJob, prepareJob, type RalphJob } from "./job.ts";
 import type { JobOverrides } from "./run-args.ts";
+import { resolveStateDirectory } from "./run-state.ts";
 import { normalizeTaskEnvironment, type OutputRequirement, type TaskEnvironment } from "./task-environment.ts";
 import { type ResolvedTaskProfile, resolveTaskProfile } from "./task-profile.ts";
 
@@ -83,10 +84,15 @@ export async function resolveTask(target: string, options: TaskOptions): Promise
   };
 }
 
-export async function stageTaskSkills(task: ResolvedTask, cwd: string): Promise<ResolvedTask> {
+export async function stageTaskSkills(task: ResolvedTask, cwd: string, stateDir?: string): Promise<ResolvedTask> {
   const environment = task.environment ?? task.profile?.environment;
   if (!task.skillPaths.length && !environment?.extensions.length && !environment?.contextFiles.length) return task;
-  const root = join(cwd, ".ralph", "inputs", randomUUID(), "skills");
+  const root = join(
+    stateDir === undefined ? join(cwd, ".ralph") : await resolveStateDirectory(cwd, stateDir),
+    "inputs",
+    randomUUID(),
+    "skills",
+  );
   const mappings: [string, string][] = [];
   const stagedSkills: string[] = [];
   const stagedRoots: string[] = [];

@@ -224,7 +224,7 @@ test("template parameter values are inserted literally once", async () => {
     { "p.md": "Target: {{ target }}" },
   );
   const result = await resolveTaskProfile(path, { ...options, params: { target: "{{unknown}} $& $1" } });
-  assert.equal(result.task, "Target: {{unknown}} $& $1");
+  assert.equal(result.task.split("\n\n").slice(1).join("\n\n"), "Target: {{unknown}} $& $1");
 });
 
 test("listing skips unrelated files and incomplete bundles but reports invalid manifests", async () => {
@@ -326,10 +326,16 @@ test("typed parameters validate values and defaults before literal substitution"
     { "prompt.md": "{{count}} {{enabled}} {{mode}}" },
   );
   assert.equal(
-    (await resolveTaskProfile(path, { ...options, params: { count: "4", enabled: "false", mode: "fast" } })).task,
+    (await resolveTaskProfile(path, { ...options, params: { count: "4", enabled: "false", mode: "fast" } })).task
+      .split("\n\n")
+      .slice(1)
+      .join("\n\n"),
     "4 false fast",
   );
-  assert.equal((await resolveTaskProfile(path, { ...options, params: { mode: "careful" } })).task, "3 true careful");
+  assert.equal(
+    (await resolveTaskProfile(path, { ...options, params: { mode: "careful" } })).task.split("\n\n").slice(1).join("\n\n"),
+    "3 true careful",
+  );
   for (const params of [{ mode: "other" }, { mode: "fast", count: "abc" }, { mode: "fast", enabled: "yes" }, {}] as Record<
     string,
     string
@@ -416,4 +422,67 @@ test("category listing detects inheritance cycles and depth without resolving sk
   for (let index = 1; index <= 32; index++) ancestor = await bundle(join(options.cwd, `level-${index}`), { extends: [ancestor] });
   await bundle(child, { extends: [ancestor] });
   await assert.rejects(listProfiles(options), /32 levels/);
+});
+
+test("numeric constraints reject unsafe values and defaults before task preparation", async () => {
+  const options = await fixture();
+  const path = await bundle(join(options.cwd, "bounded"), {
+    parameters: { limit: { type: "number", default: 3, integer: true, minimum: 1, maximum: 10 } },
+  });
+  for (const value of ["0", "-1", "11", "1.5", "NaN", "Infinity", "", " "])
+    await assert.rejects(resolveTaskProfile(path, { ...options, params: { limit: value } }), /limit/);
+  for (const value of ["1", "10", "3.0"])
+    assert.equal(
+      (await resolveTaskProfile(path, { ...options, params: { limit: value } })).manifest.parameters.limit,
+      String(Number(value)),
+    );
+  for (const descriptor of [
+    { type: "number", default: 0, minimum: 1 },
+    { type: "number", default: 11, maximum: 10 },
+    { type: "number", default: 1.5, integer: true },
+    { type: "number", default: 1, minimum: 3, maximum: 2 },
+    { type: "number", default: 1, minimum: "1" },
+    { type: "number", default: 1, maximum: null },
+    { type: "number", default: 1, integer: "true" },
+    { type: "string", default: "1", minimum: 1 },
+    { type: "boolean", default: true, integer: true },
+    { type: "number", default: 1, enum: [1, 20], maximum: 10 },
+  ]) {
+    await bundle(path, { parameters: { limit: descriptor } });
+    await assert.rejects(resolveTaskProfile(path, options), /limit/);
+  }
+});
+
+test("numeric constraints survive inheritance and personal collection without constraining legacy numbers", async () => {
+  const options = await fixture();
+  const base = await bundle(join(options.cwd, "bounded-base"), {
+    parameters: {
+      limit: { type: "number", default: 1, integer: true, minimum: 1, maximum: 10 },
+      percent: { type: "number", default: 85.5, minimum: 0, maximum: 100 },
+      legacy: { type: "number", default: -2.5 },
+    },
+  });
+  const child = await bundle(join(options.cwd, "bounded-child"), { extends: [base] });
+  const collected = await collectProfile(child, "bounded-copy", options);
+  for (const selector of [child, collected]) {
+    assert.equal((await resolveTaskProfile(selector, options)).manifest.parameters.legacy, "-2.5");
+    assert.equal((await resolveTaskProfile(selector, { ...options, params: { percent: "0" } })).manifest.parameters.percent, "0");
+    await assert.rejects(resolveTaskProfile(selector, { ...options, params: { limit: "1.5" } }), /limit/);
+    await assert.rejects(resolveTaskProfile(selector, { ...options, params: { percent: "100.01" } }), /percent/);
+  }
+});
+
+test("effective parameters are explicit escaped data and never undergo a second template expansion", async () => {
+  const options = await fixture();
+  const path = await bundle(
+    join(options.cwd, "effective-params"),
+    { parameters: { scope: "project", maxChanges: { type: "number", default: 3 } }, prompts: ["prompt.md"] },
+    { "prompt.md": "Inspect {{scope}}; limit {{maxChanges}}." },
+  );
+  const scope = 'src/"quoted"\n{{maxChanges}}';
+  const profile = await resolveTaskProfile(path, { ...options, params: { scope, maxChanges: "1" } });
+  assert.ok(profile.task.startsWith("Effective task parameters (validated by RalphWorks; JSON data):\n"));
+  const encoded = profile.task.split("\n")[1];
+  assert.deepEqual(JSON.parse(encoded), { scope, maxChanges: "1" });
+  assert.ok(profile.task.includes(`Inspect ${scope}; limit 1.`));
 });

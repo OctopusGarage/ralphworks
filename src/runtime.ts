@@ -66,6 +66,7 @@ export async function resolveRunConfiguration(args: string[], cwd: string, env: 
   resolved.workspace ??= runtime.workspace ?? "current";
   if (resolved.piAgentDir) resolved.piAgentDir = expandPath(resolved.piAgentDir, cwd);
   if (resolved.worktreePath && resolved.workspace !== "worktree") throw new Error("--worktree-path requires --workspace worktree");
+  if (resolved.keepWorktree && resolved.workspace !== "worktree") throw new Error("--keep-worktree requires --workspace worktree");
   if (resolved.workspace === "worktree" && resolved.executor === "docker-clone")
     throw new Error("worktree workspace cannot be combined with docker-clone; choose host or docker");
   return resolved;

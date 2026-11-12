@@ -21,6 +21,7 @@ export interface AgentRunner {
     cwd: string;
     progress: string;
     signal: AbortSignal;
+    deadline?: number;
     environment?: TaskEnvironment;
   }): Promise<IterationResult>;
 }

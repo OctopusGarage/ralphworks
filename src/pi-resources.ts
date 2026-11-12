@@ -1,10 +1,12 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative } from "node:path";
+import type { InlineExtension } from "@earendil-works/pi-coding-agent";
 import { normalizeTaskEnvironment, type TaskEnvironment } from "./task-environment.ts";
 
 export async function createProfileResourceLoader(input: {
   cwd: string;
+  deadline?: number;
   piAgentDir?: string;
   skillPaths: string[];
   environment?: TaskEnvironment;
@@ -18,6 +20,8 @@ export async function createProfileResourceLoader(input: {
   const globalModelSettings: Record<string, unknown> = {};
   for (const key of ["defaultProvider", "defaultModel", "defaultThinkingLevel"])
     if (globalSettings && Object.hasOwn(globalSettings, key)) globalModelSettings[key] = globalSettings[key];
+  if (input.piAgentDir !== undefined && globalSettings && Object.hasOwn(globalSettings, "retry"))
+    globalModelSettings.retry = globalSettings.retry;
   const storage = new Map<string, string>();
   storage.set("global", JSON.stringify(mode === "all" ? (globalSettings ?? {}) : globalModelSettings));
   storage.set("project", JSON.stringify(projectSettings ?? {}));
@@ -54,6 +58,7 @@ export async function createProfileResourceLoader(input: {
     noContextFiles: mode === "none",
     additionalSkillPaths: input.skillPaths,
     additionalExtensionPaths: environment.extensions,
+    extensionFactories: input.deadline === undefined ? [] : [deadlineContextExtension(input.deadline)],
     skillsOverride: (base) => ({
       skills: [
         ...selected.skills,
@@ -85,6 +90,34 @@ export async function createProfileResourceLoader(input: {
       if (isolatedAgentDir) await rm(isolatedAgentDir, { recursive: true, force: true });
     },
   });
+}
+
+function deadlineContextExtension(deadline: number): InlineExtension {
+  return {
+    name: "ralphworks-deadline",
+    hidden: true,
+    factory(pi) {
+      pi.on("context", (event) => {
+        const now = Date.now();
+        return {
+          messages: [
+            ...event.messages,
+            {
+              role: "user",
+              content: [
+                "RalphWorks execution context:",
+                `Current UTC: ${new Date(now).toISOString()}`,
+                `Agent/check deadline (UTC): ${new Date(deadline).toISOString()}`,
+                `Remaining: ${Math.max(0, Math.floor((deadline - now) / 1000))} seconds`,
+                "Implementation, report, handoff and scheduled checks share this deadline.",
+              ].join("\n"),
+              timestamp: now,
+            },
+          ],
+        };
+      });
+    },
+  };
 }
 
 async function settingsText(path: string): Promise<Record<string, unknown> | undefined> {

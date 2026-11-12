@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "security-maintenance",
-  "description": "Repair confirmed, reachable security findings with compatible changes",
+  "description": "Repair reachable security findings and affected installed dependencies with compatible changes",
   "prompts": ["prompt.md"],
   "skills": [],
   "parameters": {
@@ -11,13 +11,20 @@
     },
     "maxFixes": {
       "type": "number",
-      "default": 3
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10,
+      "integer": true
     },
     "allowDependencyUpdates": {
       "type": "boolean",
       "default": true
     },
     "allowConfigHardening": {
+      "type": "boolean",
+      "default": true
+    },
+    "allowStaticAnalysisFixes": {
       "type": "boolean",
       "default": true
     }

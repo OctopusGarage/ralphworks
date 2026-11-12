@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
-import { access, readFile, realpath, stat } from "node:fs/promises";
-import { delimiter, isAbsolute, join, relative, resolve } from "node:path";
+import { access, lstat, readFile, realpath, stat } from "node:fs/promises";
+import { delimiter, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { CheckResult } from "./check-runner.ts";
 import type { McpBindings } from "./mcp-config.ts";
 import type { OutputRequirement, TaskEnvironment } from "./task-environment.ts";
@@ -30,6 +30,32 @@ export async function checkTaskPrerequisites(
       if (found) break;
     }
     if (!found) throw new Error(`Required command is unavailable: ${command}`);
+  }
+}
+
+/** Reject unsafe declared write destinations before each agent iteration. */
+export async function checkTaskOutputPaths(outputs: OutputRequirement[], cwd: string): Promise<void> {
+  if (outputs.length === 0) return;
+  const root = await realpath(cwd);
+  for (const output of outputs) {
+    const suffix = relative(root, resolve(root, output.path));
+    if (!suffix || suffix === ".." || suffix.startsWith(`..${sep}`) || isAbsolute(suffix))
+      throw new Error(`Unsafe output path ${output.path}: outside the task workspace`);
+    let path = root;
+    const parts = suffix.split(sep);
+    for (const [index, part] of parts.entries()) {
+      path = join(path, part);
+      let info: Awaited<ReturnType<typeof lstat>>;
+      try {
+        info = await lstat(path);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") break;
+        throw error;
+      }
+      if (info.isSymbolicLink()) throw new Error(`Unsafe output path ${output.path}: symlink destination or ancestor`);
+      if (index === parts.length - 1 ? !info.isFile() : !info.isDirectory())
+        throw new Error(`Unsafe output path ${output.path}: expected regular file destination and directory ancestors`);
+    }
   }
 }
 

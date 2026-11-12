@@ -11,10 +11,10 @@
     "commit": "none"
   },
   "checks": [],
-  "artifacts": [],
+  "artifacts": ["CODE_REVIEW.json"],
   "environment": {
     "resourceInheritance": "none",
-    "tools": ["read", "grep", "find", "ls"],
+    "tools": ["read", "write", "grep", "find", "ls"],
     "extensions": [],
     "contextFiles": [],
     "mcp": {},
@@ -23,6 +23,12 @@
       "env": []
     }
   },
-  "outputs": [],
+  "outputs": [
+    {
+      "path": "CODE_REVIEW.json",
+      "format": "json",
+      "required": true
+    }
+  ],
   "category": "quality"
 }

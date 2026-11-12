@@ -30,6 +30,7 @@ type RunArgEnv = {
 };
 
 export type RunArgs = {
+  help?: true;
   runner: RunnerName;
   executor: ExecutorName;
   repo?: string;
@@ -47,9 +48,13 @@ export type RunArgs = {
   params?: Record<string, string>;
   workspace?: "current" | "worktree";
   worktreePath?: string;
+  keepWorktree?: boolean;
+  stateDir?: string;
+  resultFile?: string;
+  invocationId?: string;
 };
 
-export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunArgs | Error {
+export function parseRunArgs(args: string[], env: RunArgEnv = process.env, options: { allowHelp?: boolean } = {}): RunArgs | Error {
   const out: RunArgs = {
     runner: "pi",
     executor: "host",
@@ -103,6 +108,31 @@ export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunA
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+    if (options.allowHelp && (arg === "-h" || arg === "--help")) return { ...out, help: true };
+    if (arg === "--keep-worktree") {
+      if (out.keepWorktree) return new Error("Duplicate option: --keep-worktree");
+      out.keepWorktree = true;
+      continue;
+    }
+    if (arg === "--state-dir") {
+      const value = args[index + 1];
+      if (!value?.trim() || value.startsWith("--")) return new Error("--state-dir requires a path value");
+      if (out.stateDir !== undefined) return new Error("Duplicate option: --state-dir");
+      out.stateDir = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--result-file" || arg === "--invocation-id") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) return new Error(`${arg} requires a value`);
+      const key = arg === "--result-file" ? "resultFile" : "invocationId";
+      if (out[key] !== undefined) return new Error(`Duplicate receipt option: ${arg}`);
+      if (key === "invocationId" && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value))
+        return new Error("--invocation-id must contain 1–128 ASCII letters, digits, underscores or hyphens");
+      out[key] = value;
+      index += 1;
+      continue;
+    }
     if (["--profile", "--runtime", "--workspace", "--worktree-path", "--param"].includes(arg)) {
       const value = args[index + 1];
       if (!value || value.startsWith("--")) return new Error(`${arg} requires a value`);

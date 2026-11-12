@@ -96,6 +96,46 @@ test("maintenance parameters are typed and resolve into the selected method", as
   await assert.rejects(resolveTaskProfile("builtin:bugfix", { ...options, params: { mode: "random" } }), /allowed|enum|one of/i);
 });
 
+test("security repair limits and independent permissions survive composition, collection, and preparation", async () => {
+  const options = await isolated();
+  const builtin = await resolveTaskProfile("builtin:security-maintenance", options);
+  assert.deepEqual(builtin.manifest.parameters, {
+    scope: "project",
+    maxFixes: "3",
+    allowDependencyUpdates: "true",
+    allowConfigHardening: "true",
+    allowStaticAnalysisFixes: "true",
+  });
+  const composed = join(options.cwd, "security.json");
+  await writeFile(composed, JSON.stringify({ version: 1, name: "security", extends: ["builtin:security-maintenance"] }));
+  const collected = await collectProfile(composed, "saved-security", options);
+  for (const selector of ["builtin:security-maintenance", composed, collected]) {
+    assert.deepEqual((await resolveTaskProfile(selector, options)).manifest.parameters, builtin.manifest.parameters);
+    assert.equal((await resolveTaskProfile(selector, { ...options, params: { maxFixes: "10" } })).manifest.parameters.maxFixes, "10");
+    await assert.rejects(resolveTaskProfile(selector, { ...options, params: { maxFixes: "11" } }), /maxFixes/);
+    for (const permissions of [
+      { allowDependencyUpdates: "true", allowConfigHardening: "false", allowStaticAnalysisFixes: "false" },
+      { allowDependencyUpdates: "false", allowConfigHardening: "true", allowStaticAnalysisFixes: "true" },
+    ]) {
+      const params = { scope: "dependencies", maxFixes: "5", ...permissions };
+      const resolved = await resolveTaskProfile(selector, { ...options, params });
+      const prepared = await stageTaskSkills(
+        await resolveTask("Maintain affected installed dependencies", { cwd: options.cwd, profile: selector, params }),
+        options.cwd,
+      );
+      assert.deepEqual(resolved.manifest.parameters, params);
+      assert.deepEqual(prepared.profile?.manifest.parameters, params);
+      assert.deepEqual(JSON.parse(resolved.task.split("\n")[1]), params);
+      assert.ok(prepared.job.task.includes(resolved.task));
+      assert.deepEqual(prepared.environment, builtin.environment);
+      assert.deepEqual(prepared.outputs, builtin.outputs);
+      assert.equal(prepared.job.commit, "none");
+    }
+    for (const parameter of ["allowDependencyUpdates", "allowConfigHardening", "allowStaticAnalysisFixes"])
+      await assert.rejects(resolveTaskProfile(selector, { ...options, params: { [parameter]: "yes" } }), /true or false/);
+  }
+});
+
 test("built-in selections use upstream identities and leave other profiles prompt-only", async () => {
   const options = await isolated();
   for (const name of builtinNames) {
@@ -158,7 +198,7 @@ test("shipped maintenance policies preserve evidence, completion, and report-onl
   assert.match(coverage.task, /do not change correct production code merely to manufacture a failing test/);
   for (const name of Object.keys(reports)) {
     const profile = await resolveTaskProfile(`builtin:${name}`, options);
-    assert.match(profile.task, /RalphWorks owns commit policy/);
+    assert.match(profile.task, /RalphWorks owns (?:staging and )?commit policy/);
     assert.doesNotMatch(profile.task, /or contact external services/);
     if (reportOnly.has(name)) {
       assert.deepEqual(profile.environment.tools, ["read", "bash", "write", "grep", "find", "ls"]);
@@ -174,11 +214,8 @@ test("shipped maintenance policies preserve evidence, completion, and report-onl
     ["security-maintenance", "maxFixes"],
     ["test-coverage", "targetCoverage"],
   ]) {
-    const profile = await resolveTaskProfile(`builtin:${name}`, { ...options, params: { [parameter]: "-1" } });
-    // The schema supports numeric types, while prompt policy must reject out-of-range values before mutation.
-    assert.equal(profile.manifest.parameters[parameter], "-1");
-    assert.match(profile.task, /Before (editing|writing the report), require/);
-    assert.match(profile.task, /needs-input/);
+    for (const value of parameter === "targetCoverage" ? ["-1", "100.1"] : ["0", "-1", "1.5", "11"])
+      await assert.rejects(resolveTaskProfile(`builtin:${name}`, { ...options, params: { [parameter]: value } }), new RegExp(parameter));
   }
 });
 
@@ -197,7 +234,7 @@ test("design and performance profiles expose bounded typed task inputs and categ
     if (parameter !== "scope")
       await assert.rejects(resolveTaskProfile(`builtin:${name}`, { ...options, params: { [parameter]: "many" } }), /number/);
   }
-  assert.deepEqual((await resolveTaskProfile("builtin:code-review", options)).environment.tools, ["read", "grep", "find", "ls"]);
+  assert.deepEqual((await resolveTaskProfile("builtin:code-review", options)).environment.tools, ["read", "write", "grep", "find", "ls"]);
   const listed = await listProfiles(options);
   for (const entry of listed) assert.equal((await resolveTaskProfile(`builtin:${entry.name}`, options)).category, entry.category);
 });
@@ -404,9 +441,36 @@ test("combined methods keep only their owning report and adapt upstream interact
   const architecture = await resolveTaskProfile("builtin:architecture", options);
   assert.match(architecture.task, /Do not open a browser/);
   assert.match(architecture.task, /needs-input/);
+  assert.match(architecture.task, /Serialize CPU-heavy, browser, and build suites/);
+  assert.match(architecture.task, /bound each tool's internal concurrency/);
+  assert.match(architecture.task, /Overlap only cheap independent checks or source review/);
   assert.equal(architecture.skillPaths.length, 2);
   const coverage = await resolveTaskProfile("builtin:test-coverage", options);
   assert.match(coverage.task, /test-quality findings/);
   assert.match(coverage.task, /Skip upstream history tracking/);
   assert.deepEqual(coverage.outputs, [{ path: "COVERAGE_REPORT.md", format: "text", required: true }]);
+});
+
+test("architecture allows broad scheduled checks while preserving explicit timeout overrides", async () => {
+  const options = await isolated();
+  const task = await resolveTask("Improve one module boundary", { ...options, profile: "builtin:architecture" });
+  assert.equal(task.job.checkTimeoutSeconds, 180);
+  assert.equal(task.job.maxMinutes, 30);
+  const overridden = await resolveTask("Improve one module boundary", {
+    ...options,
+    profile: "builtin:architecture",
+    jobOverrides: { checkTimeoutSeconds: 45 },
+  });
+  assert.equal(overridden.job.checkTimeoutSeconds, 45);
+  const ordinary = await resolveTask("Inspect a module", options);
+  assert.equal(ordinary.job.checkTimeoutSeconds, 60);
+});
+
+test("security maintenance completes evidence-backed no-ops without manufacturing changes or staging", async () => {
+  const profile = await resolveTaskProfile("builtin:security-maintenance", await isolated());
+  assert.match(profile.task, /no confirmed actionable finding is eligible for repair/i);
+  assert.match(profile.task, /SECURITY_REPORT\.md only/);
+  assert.match(profile.task, /do not modify production code, tests, dependencies, lockfiles, or configuration/i);
+  assert.match(profile.task, /regression tests only when necessary for a confirmed repair/i);
+  assert.match(profile.task, /do not stage files or mutate the Git index/i);
 });

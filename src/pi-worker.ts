@@ -9,6 +9,7 @@ type WorkerInput = {
   iteration: number;
   cwd: string;
   progress: string;
+  deadline?: number;
   options: { modelRef?: ModelRef; piAgentDir?: string; skillPaths?: string[]; environment?: TaskEnvironment; mcpBindings?: McpBindings };
 };
 

@@ -28,6 +28,10 @@ ralphworks --help
 
 Without a global link, replace `ralphworks` with `node /path/to/ralphworks/dist/cli.js`. Run commands from the root of the target repository. `run` uses Pi on the host by default. `--runner dry-run` exercises orchestration without modifying code and normally ends at `max_iterations`.
 
+Source installs pin Pi's `minimatch` dependency to 11.0.1 for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). Pi's resource filters use the retained `minimatch()` API; the removed regular-expression APIs are not used. Package-manager overrides belong to the installation root: when installing the tarball into a managed prefix, carry the repository's scoped overrides into that prefix and audit its own lockfile. Overrides inside an installed dependency do not protect a separate global or prefix installation.
+
+Use `--help` or `-h` as the command or immediate subcommand target to print usage and exit successfully, including `ralphworks run --help` and `ralphworks plan --help`. For `run` and `plan`, help is also recognized at an option position after the task. Other command argument parsers retain their existing strict validation; `remote task.md -h` is rejected before dispatch. Help exits before resolving tasks, profiles, runtimes or workspaces; it does not start an agent or create run state or worktrees. Values consumed by other options remain literal: `--completion-promise --help` sets the completion promise rather than requesting help. Existing argument validation still applies before a later help option. A bare `--` remains unsupported; `--` consumed as an option value remains literal.
+
 ```bash
 cd /path/to/project
 ralphworks run 'Fix the lost state after refreshing the results page'
@@ -39,6 +43,8 @@ ralphworks trace .ralph/runs/<run-directory>/events.jsonl
 
 RalphWorks delegates models, authentication, and custom providers to Pi. Configure credentials with Pi's `/login` command and select a model with `/model`. Pi uses `~/.pi/agent` by default; use `--pi-agent-dir` to select another directory.
 RalphWorks disables automatic agent resource discovery by default, including runs without a profile. A profile can opt into project resources or project and global resources through `environment.resourceInheritance`. Model settings and credentials in `--pi-agent-dir` remain available regardless of resource inheritance. For scheduled architecture skill use, see [Architecture proposals](ISSUE_WORKFLOWS.md#architecture-proposals).
+
+When an agent directory is explicitly selected through `--pi-agent-dir`, runtime `piAgentDir`, or the existing environment resolution, its `settings.json` retry policy also remains available under `none` and `project` resource inheritance. This does not enable its skills, prompts, context or extensions. Without an explicit directory selection, these isolated modes do not inherit ambient global retry settings. In `project` mode, project settings retain the SDK's recursive override behavior, including partial retry overrides; `all` retains its existing inheritance. Task settings are held in memory and do not rewrite the source settings files.
 
 Model resolution follows this order:
 
@@ -78,7 +84,7 @@ Plain tasks default to:
 - Checks: none.
 - Commit policy: `none`.
 
-The agent can modify any file in the current worktree. RalphWorks injects its own completion and Git rules, so task text does not need to mention commits or completion tags.
+The agent can modify any file in the current worktree. RalphWorks injects its own completion and Git rules, so task text does not need to mention commits or completion tags. The agent must not create Git commits. With `commit: none`, RalphWorks leaves changes uncommitted for caller review and delivery; with `commit: verified`, RalphWorks handles permitted commits after passing configured checks. The selected commit policy does not bypass task completion, configured checks or output validation.
 
 ### Multi-item tasks
 
@@ -98,7 +104,7 @@ Add CSV export to the report page.
 - `npm test` and `npm run build` pass.
 ```
 
-The checklist is ordinary task text, not a format RalphWorks parses or edits. Keep the task file stable during a run. RalphWorks supplies the same task and its saved progress to each new agent session; the handoff should identify the completed item, check evidence, and the next item. Use independent `--check` commands or a YAML job for the acceptance criteria. Make each item small enough to complete and check in one iteration.
+The checklist is ordinary task text, not a format RalphWorks parses or edits. Keep the task file stable during a run. RalphWorks supplies the same task and its saved progress to each new agent session; the handoff should identify the completed item, check evidence, and the next item. Use independent `--check` commands or a YAML job for the acceptance criteria. For architecture changes involving resource owners, combine callback reentry, cleanup and notification-time observations in the same regression; after extraction, run affected-check selectors for each moved implementation path independently. Make each item small enough to complete and check in one iteration.
 
 ### Additional context
 
@@ -165,7 +171,13 @@ ralphworks profiles update my-bugfix
 ralphworks profiles remove my-bugfix
 ```
 
-The nine shipped profiles are organized as delivery (`bugfix`, `domain-modeling`), quality (`code-review`, `architecture`, `test-coverage`, `security-maintenance`, `performance`), and design (`ui-implementation`, `ux-review`). Bugfix combines reported defects and bounded discovery through `mode=reported|discover`, with `maxFixes=1` by default. Coverage includes the Brooks test-quality skill and records both quality findings and measured coverage in `COVERAGE_REPORT.md`. Architecture explicitly selects improve-codebase-architecture and its codebase-design companion. See the [catalog](TASK_PROFILES.md) for complete environments, parameters, source provenance, reports and migration instructions. Generic coding and documentation remain explicit examples rather than built-in entries; direct tasks need no profile. Optional [capability profiles](CAPABILITY_PROFILES.md) add browser and MCP integrations without requiring them in the base catalog. No built-in requires an external service. Bugfix, UI implementation and UX review include the Playwright CLI skill, bash and `requires.commands: ["playwright-cli"]` directly; prepare the executable and browsers in the chosen executor before running. UX permits task-owned browser evidence while prohibiting implementation edits. The built-in code review has read/search tools and returns findings in its final response.
+The nine shipped profiles are organized as delivery (`bugfix`, `domain-modeling`), quality (`code-review`, `architecture`, `test-coverage`, `security-maintenance`, `performance`), and design (`ui-implementation`, `ux-review`). Bugfix combines reported defects and bounded discovery through `mode=reported|discover`, with `maxFixes=1` by default. Coverage includes the Brooks test-quality skill and records both quality findings and measured coverage in `COVERAGE_REPORT.md`. Architecture explicitly selects improve-codebase-architecture and its codebase-design companion. See the [catalog](TASK_PROFILES.md) for complete environments, parameters, source provenance, reports and migration instructions. Generic coding and documentation remain explicit examples rather than built-in entries; direct tasks need no profile. Optional [capability profiles](CAPABILITY_PROFILES.md) add browser and MCP integrations without requiring them in the base catalog. No built-in requires an external service. Bugfix, UI implementation and UX review include the Playwright CLI skill, bash and `requires.commands: ["playwright-cli"]` directly; prepare the executable and browsers in the chosen executor before running. UX permits task-owned browser evidence while prohibiting implementation edits. The built-in code review has read/search tools and a report-only write permission; it returns findings in its final response and writes required `CODE_REVIEW.json`.
+
+Bugfix preserves independently established external contracts. When producers and consumers disagree, use versioned specifications, compatible fixtures or read-only history to choose the repair; a successful round trip alone does not prove backward compatibility. Unresolved contract choices require input before dependent edits.
+
+For UI work that needs pixel-level judgment, configure an image-capable model. Text-only runs can verify DOM geometry and interactions, but must mark visual inspection unavailable. Capture evidence after the intended viewport/state and layout settle, checking state and overlays before and after capture. Use a unique filename for every capture and retry; never overwrite cited evidence. Record each final image path, viewport, state, observation basis and SHA-256 in UI_REPORT.md, then rehash all referenced files before completion. Hashes establish identity, not state or pixel correctness.
+
+Image capability belongs to the selected Pi model entry, independently of the profile: declare `"input": ["text", "image"]` only after verifying that the route accepts image content. An omitted input declaration defaults to text-only in the current Pi version; a vision-capable backend alone does not enable the adapter to inspect images. Keep unavailable visual acceptance as needs-input rather than a completion claim.
 
 `profiles add SOURCE NAME` saves a bundle in the personal library, flattens inheritance, and copies prompt files, local skill and extension directories, and explicit context files. Remote skills retain their source declarations and current commit pins, so they can be updated independently. Extension support files are preserved; for a standalone extension file, its containing directory is copied. Prefer a dedicated extension directory to keep the bundle focused. Collection refuses existing names and symlink assets. Edit the collected prompts and configuration to customize the method. After editing a copied local skill, run `profiles update NAME` to adopt its new content; use `skills fork` to customize a Hub skill. `remove` affects only the personal profile library.
 
@@ -222,7 +234,9 @@ bugfix/
 
 Prompt and selected skill instructions use `{{target}}` placeholders. Unknown parameters, missing required parameters, and unresolved placeholders fail before execution. Values are inserted literally in one pass; they are never interpolated into check commands. Keep secrets in provider configuration and environment variables, since task parameters appear in resolved plans and run records.
 
-Typed parameter descriptors use `type: "string" | "number" | "boolean"`, a matching `default` or `required: true`, and an optional `enum` of matching values. For example, `"retries": { "type": "number", "default": 2 }` accepts `--param retries=3`; booleans accept only `true` or `false`. The prompt receives the resolved string representation. Defaults outside the enum and unknown descriptor fields are rejected.
+Typed parameter descriptors use `type: "string" | "number" | "boolean"`, a matching `default` or `required: true`, and an optional `enum` of matching values. For example, `"retries": { "type": "number", "default": 2 }` accepts `--param retries=3`; booleans accept only `true` or `false`. The prompt receives the resolved string representation. Numeric descriptors also accept `integer: true`, inclusive `minimum` and inclusive `maximum`. For example, `"maxChanges": { "type": "number", "default": 3, "integer": true, "minimum": 1, "maximum": 10 }` rejects `0`, `1.5` and `11` before workspace creation or agent startup. Constraints apply to defaults and enum members as well as supplied values, and survive inheritance and collection. Unconstrained numeric descriptors retain their previous behavior. Defaults outside the enum, inverted ranges, non-numeric bounds and unknown descriptor fields are rejected.
+
+Resolved instructions start with the effective parameters as escaped JSON data. Values are not expanded a second time; this makes supplied/default limits explicit to the agent without shell interpolation. Parameters are task data, not credentials.
 
 Inherited prompts, skills, extensions, and context files concatenate in order and deduplicate by canonical path. Later ancestors and then the descendant override parameter declarations and individual job defaults. A declared tool array replaces inherited tools; `[]` disables built-in and extension tools while separately selected MCP tools remain available. `resourceInheritance` uses the most specific explicit value. MCP entries merge by alias, with a descendant's complete entry replacing that alias. Required commands and environment names combine. Output entries merge by path, with later entries replacing earlier requirements; artifact expectations combine. Resource paths are relative to the declaring bundle. Cycles and more than 32 levels are rejected. Combined manifests, prompts, contexts, and complete skill/extension support files are limited to 100 files and 1 MiB. Unknown fields and invalid values fail before execution.
 
@@ -537,13 +551,44 @@ ralphworks run 'Fix the login error' --profile bugfix --param target=login \
 
 Task worktrees require a clean Git repository root, excluding generated `.ralph/` state. They start at the current HEAD on a unique `ralphworks/<uuid>` branch and include committed inputs. Commit project profiles, task files, and context first. Install task dependencies in the new worktree as appropriate for your project; ignored dependency directories are not copied from the starting worktree.
 
-The CLI reports the created path and branch. A workspace record is saved under the starting repository's `.ralph/workspaces/`. The branch, worktree, edits, and run records remain after success, failure, or interruption so you can inspect them. RalphWorks does not automatically merge or delete them. `--worktree-path` requires `--workspace worktree`; its target must not already exist. Worktree selection cannot be combined with `docker-clone`, which prepares its own clone.
+The CLI reports the created path, branch and ownership record. Newly created host worktrees default to verified recovery archiving and removal after success, failure, cancellation or a limit, provided execution is quiescent and ownership remains unchanged. Use `--keep-worktree` to retain one for inspection. The task branch remains in the source repository; RalphWorks does not merge or push it. Current workspaces, including workspaces supplied by another scheduler, are never removed. `--worktree-path` requires `--workspace worktree`; its target must not already exist. Worktree selection cannot be combined with `docker-clone`, which prepares its own clone. Docker-owned worktrees are explicitly retained because container absence and external state mapping are not established by this cleanup path.
+
+### Workspace cleanup and recovery
+
+```bash
+ralphworks run task.md --workspace worktree --check 'npm test'
+ralphworks run task.md --workspace worktree --keep-worktree
+ralphworks workspaces list
+ralphworks workspaces prune --dry-run
+ralphworks workspaces prune
+```
+
+Ownership records live under `<state-root>/workspaces/<id>.json`. The default registry root is the starting repository's `.ralph`; each owned host run uses `.ralph/workspace-runs/<id>` for inputs, progress, results and its current pointer. An explicit host `--state-dir` instead uses that exact caller-resolved directory. State and receipt destinations must remain outside a removable worktree, including its `.ralph` subtree. `plan` describes the cleanup policy without creating or collecting workspaces.
+
+Before removal, the CLI persists the terminal result and any requested invocation receipt under the original worktree lock. It prints `cleanup=removed` and `recovery=<path>`, or `cleanup=retained` with a reason on stderr. Task status and exit codes retain their existing meaning; cleanup failure never rewrites a failed task into success. Workspace inventory reports cleanup independently. Use `--state-dir PATH` with `workspaces list` or `prune` for a nondefault registry. List and prune preview are read-only. Prune uses the same ownership checks as automatic cleanup and has no force override.
+
+Recovery lives at `<state-root>/workspace-recovery/<id>`. Its private manifest records source/HEAD identity, file hashes, modes, symlink targets and excluded reproducible directories. `staged.patch` and `unstaged.patch` preserve the index separately. Additional files and tracked raw-byte overlays are stored by content hash under `files/`; restore them after applying patches, using the manifest's relative paths and modes without following symlinks. Tracked overlays are marked `tracked: true` and preserve working bytes hidden by line-ending normalization or clean filters. Separate mode overrides preserve differences from indexed permissions, including executable changes hidden by `core.filemode=false`. An immutable `refs/ralphworks/recovery/<id>` reference pins the terminal commit in the original source Git database. This is compact local recovery, not a standalone Git bundle: preserve the source repository and its recovery refs. To inspect tracked changes, create a review checkout at that reference, apply a nonempty staged patch with `git apply --index`, then apply a nonempty unstaged patch. Required outputs, ignored coverage/browser diagnostics and other non-reproducible ignored files are retained. Ignored dependency/build/cache directories can be excluded; symlink targets are never copied.
+
+Capture is bounded to 32 MiB of patch/additional-file data, 4,096 recovery entries and 1 MiB of estimated metadata. Each Git output is bounded to 8 MiB and ten seconds; each source snapshot has a 30-second deadline. Clean tracked assets are streamed for integrity checks and compared with their indexed Git blob; matching bytes do not consume the capture byte/entry allowance. Raw mismatches use the same bounded overlay storage as other recovered files. Required-output and custom-progress preservation paths are normalized before ignored-directory exclusions. Exceeding a bound or encountering unsupported index flags (`assume-unchanged`/`skip-worktree`), conflicts, submodules, unreadable files or changed identity retains the worktree with a reason.
+
+Automatic removal requires absent managed process groups and a fresh, bounded same-user POSIX `lsof` check for cwd/open-file references to the canonical workspace. A live reference, unavailable tool, timeout, truncation or unknown result retains it. These checks do not eliminate general filesystem races or establish ownership of arbitrary foreign writers. Cleanup never kills a process. Docker and hosts without supported process-reference proof retain owned worktrees.
+
+A later `run --workspace worktree` or `workspaces prune` retries recorded normal terminal outcomes, plus quiescent/archived cleanup. A terminal outcome records the managed group IDs already observed during that invocation; retry must freshly prove those groups absent and the workspace unused before advancing to quiescent. It does not infer safety from an old timestamp or a dead parent PID: interrupted in-flight runs, legacy records, live locks, explicit keep policy and unknown ownership are retained for inspection. Published recovery survives a crash between archive and removal; replay verifies its hashes before completing. Forced process termination can still leave an in-flight workspace that needs an operator to establish safety.
+
 
 For Docker clone and GitHub Actions, store profiles, skills, prompt files, and runtime inputs in the repository and push them to the selected ref. Personal host library paths are not automatically present in those environments. A YAML `profile` field is useful for remote tasks. Docker clone also forwards the explicit `--profile` selector and parameters, which must refer to inputs available inside that clone.
 
 ## Iteration and terminal states
 
 Each iteration creates a new Pi session and supplies the task plus a bounded view of durable progress from earlier iterations. The full progress history stays on disk. For tasks with several items, the agent chooses the highest-priority unfinished item. After the agent returns, RalphWorks records model events and cost, runs every configured check, updates progress, and decides whether to continue. Failed check output is included in the next iteration's progress, capped at 2,000 characters per failed check.
+
+The agent receives the enforced agent/check deadline in UTC, the remaining time when its prompt is built, and the configured checks that RalphWorks runs after it returns. An internal Pi context extension refreshes the current UTC time and remaining seconds before each Pi agent model turn, using that same absolute deadline. The note is transient and does not accumulate in session history. Implementation, report, handoff and scheduled checks share the run budget; the deadline is never restarted. Focused verification, meaningful source changes and failed-check diagnosis still need their own checks; repeating an unchanged-input command only to duplicate the scheduled gate is unnecessary. Never present a scheduled check as already passed. Architecture tasks inspect whole-change affected-check selection early, including shared configuration inputs, alongside per-moved-path acceptance selection. They keep their report current as commands finish, including failures and limits.
+
+Architecture tasks inspect the actual verification script and preserve compatible existing dependency resolutions when an authorized prerequisite fix is needed. Additional lockfile updates require a concrete reason; a similarly named package script does not define a built-in package-manager command's behavior.
+
+Pi may retry transient model failures within the same iteration. A recovered response can continue normally; terminal error or aborted responses remain blocked. Historical errors remain in run events. Only the final assistant handoff supplies completion or human-input signals, so an earlier failed or superseded response cannot complete a task.
+
+For example, `"retry": { "enabled": true, "maxRetries": 2, "baseDelayMs": 60000 }` in the selected Pi `settings.json` configures the SDK's session backoff to wait 60 seconds, then 120 seconds, for up to two retries. Retry waits consume the original task deadline and remain cancellable; they do not add task rounds or extend the budget. This uses the SDK's existing retry behavior, not exact `Retry-After` handling, and does not change the default retry policy.
 
 A completion tag requests completion. A configured check failure prevents completion even when the tag is present. Without independent checks, the tag is sufficient; it is an agent report, not independent proof that the task is correct. Use checks covering the essential acceptance criteria for unattended work. Two consecutive Git iterations without worktree progress stop as `blocked`.
 
@@ -566,6 +611,8 @@ Run records omit raw assistant text deltas. The runner keeps at most 1,000 struc
 
 Checks are optional for ordinary work. They are commands executed by the orchestrator after every iteration and should cover the task's critical acceptance behavior.
 
+The architecture profile allows 180 seconds per configured check; ordinary tasks default to 60 seconds. Override this with `--check-timeout SECONDS` or a job's `check_timeout_seconds`. Each check still shares the overall `--max-minutes` deadline with implementation and handoff. Size that deadline for all required checks and any caller-owned review; a larger per-check cap does not create additional run time. Avoid running competing heavy suites concurrently when setting limits from observed durations.
+
 `commit: verified` requires:
 
 - A Git repository and clean starting worktree, excluding `.ralph/`.
@@ -576,9 +623,29 @@ After every iteration whose checks pass, RalphWorks commits that iteration's cha
 
 Use verified commits on a dedicated branch or worktree. A passing command proves only what that command checks and does not replace semantic review.
 
+## Machine-readable run receipts
+
+External schedulers can invoke the CLI without importing RalphWorks internals or parsing terminal output. Use an unused caller-owned result path and a unique invocation identifier:
+
+```bash
+ralphworks run task.md --profile builtin:architecture \
+  --runtime maintenance --executor host --workspace current --commit none \
+  --result-file /path/to/attempt/receipt.json --invocation-id attempt-123
+```
+
+`--result-file` and `--invocation-id` must be supplied together and are supported by `run` with the host executor. The identifier accepts 1–128 ASCII letters, digits, underscores and hyphens, beginning with a letter or digit. Receipt transport for Docker and remote runs is not supported; their existing execution/export interfaces remain available. A runtime remains an independent model/execution configuration reference. Callers requiring a current host worktree must supply those explicit overrides.
+
+The [version 1 JSON schema](schemas/run-receipt-v1.schema.json) describes the receipt: invocation ID, start/finish times, canonical workspace and initial/final Git HEAD (null outside Git), raw task-input SHA-256, resolved profile fingerprint, terminal result and output-file digests. For file inputs the task hash covers exact original bytes; direct text hashes the supplied string. The profile fingerprint binds the resolved manifest, instructions, environment and output requirements for this invocation before resource staging, including local resource paths; it is not a cross-machine portable identity. Archived task manifests contain remapped skill paths, so hashing their staged profile directly does not reproduce this fingerprint. Portable skill provenance remains in the prepared task manifest.
+
+A complete receipt is published atomically after terminal run-state persistence, while the execution worktree lock is still held, and before owned-workspace removal. Initial Git HEAD is captured after acquiring that same lock; final HEAD and output digests are captured before releasing it, including for current and caller-owned workspaces. Its workspace path identifies the historical execution location, which may no longer exist; external run records and the ownership/recovery record remain available. Existing files and symlinks are never replaced. A sibling `.lock` reserves the destination before agent/check execution; another invocation using that destination fails. Put receipts outside the repository when requiring a clean worktree. Pre-run resolution failures produce a nonzero exit without a terminal receipt. An interrupted process may leave its reservation; preserve its evidence and use a new attempt path rather than deleting an uncertain attempt and blindly rerunning it.
+
+Every normal terminal status, including cancellation, unsuccessful checks and needs-input, retains a receipt. Internal `RALPHWORKS_PREPARED_TASK` transport cannot be combined with receipts, so a different prepared job cannot masquerade as the positional task. Missing, unreadable, nonregular, out-of-workspace or oversized outputs have a null digest; collection is bounded by the existing 1 MiB output validation limit and must not suppress an unsuccessful terminal receipt. The ordinary exit status is unchanged: completed is zero, SIGINT/SIGTERM cancellation is 130/143, and other unsuccessful results are nonzero. Forced termination can prevent a receipt. Clients must correlate the ID, exact task hash, workspace, baseline/current HEAD and referenced artifacts, then validate the terminal status, required outputs and applicable checks. Historical failed checks can precede a successful final iteration; use each check's `iteration`, not an all-history pass assumption. A digest binds bytes, not semantic correctness, and `completed` does not establish an independent domain acceptance decision.
+
+The caller owns worktree preparation, cancellation/deadline supervision and delivery. RalphWorks owns its bounded agent/check loop. For a single Git owner use `--commit none`; the caller may review and commit only after its own acceptance gates. RalphWorks uses `.ralph/` for task state and staged resources. Preserve that state as artifacts and exclude it from source delivery; callers must not overwrite or delete preexisting user state. Model credentials, skill snapshots and MCP bindings remain in RalphWorks/Pi configuration, outside the scheduler protocol.
+
 ## Run state
 
-Host and Docker mount runs store state under `.ralph/`:
+Current-workspace host and Docker mount runs store state under `.ralph/`. Owned host runs use the external per-workspace state described above:
 
 ```text
 .ralph/
@@ -593,7 +660,21 @@ Host and Docker mount runs store state under `.ralph/`:
     └── task.json
 ```
 
-`current` points to the latest run. Default progress paths include a hash of the complete task and supplied context: rerunning the same task reuses progress, while changed tasks start fresh. An explicit `progress_file` keeps its chosen path. The lock prevents concurrent runs in one worktree. `ralphworks init` adds `.ralph/` to `.gitignore`.
+`current` points to the latest run. Default progress paths include a hash of the complete task and supplied context: rerunning the same task reuses progress, while changed tasks start fresh. Without a state-directory override, an explicit `progress_file` keeps its chosen path. The lock prevents concurrent runs in one worktree. `ralphworks init` adds `.ralph/` to `.gitignore`.
+
+For host execution, choose a separate runtime directory when project checks scan every project file:
+
+```bash
+ralphworks plan 'Inspect this project' --state-dir ../task-state
+ralphworks run task.md --state-dir ../task-state --check 'npm test'
+ralphworks status ../task-state/current
+```
+
+`--state-dir PATH` is a runtime choice for host `run` and `plan`, not a task-profile or runtime-preset field. Relative paths resolve from the caller's starting directory, including when `--workspace worktree` selects another worktree. Inputs and their skill/extension/context support files, run manifests, environment inventories, events, results, the current pointer and retained workspace records use that directory. Reported result and receipt paths identify their actual locations; receipt workspace/HEAD and output requirements still refer to the execution worktree. `plan` and help do not create state or a workspace.
+
+Relative progress paths within `.ralph/`, including an explicit `progress_file: .ralph/progress/shared.md`, are rebased under the selected root. Explicit relative progress paths outside `.ralph/` remain relative to the execution worktree; explicit absolute progress paths remain unchanged. Without `--state-dir`, current-workspace paths and metadata stay unchanged; owned host runs use their external per-workspace root. Custom state inside a source or execution worktree is accepted only within its reserved `.ralph` namespace, with existing ancestor symlinks resolved for validation. Docker and remote execution reject `--state-dir`; there is no implicit container path mapping.
+
+The worktree lock always stays at the execution worktree's `.ralph/run.lock`, independently of the selected state directory. Explicit state roots cannot contain the reserved `.ralph/run.lock` component pair or descend from it, including case variants and resolved symlink aliases, because lock cleanup removes that subtree. This conservative reservation applies even outside the selected workspace. Normal `.ralph/custom-state` and external directories remain supported. During an external-state run, the lock owner contains only a PID and random UUID; path-bearing implicit runtime records stay outside the worktree. Two invocations using different state directories still cannot write the same worktree concurrently. Keep state directories unique when separate worktrees or callers must retain independent run histories.
 
 ## Recovering an interrupted local run
 
@@ -606,7 +687,7 @@ git diff --check
 git diff
 ```
 
-RalphWorks leaves edits in place after a failure or interruption. If `commit: verified` is enabled, a dirty worktree blocks a new run so unchecked edits cannot be committed automatically. On the same dedicated branch, review the changed files, run the relevant project checks, then commit only the files you have verified. You can instead discard the edits after reviewing them. Rerun the same task and options once the worktree is clean; its default progress file is reused when the task and context are unchanged. Do not delete a lock held by a live run; a stale lock is reclaimed automatically when its owner is gone.
+For current workspaces and explicitly kept worktrees, RalphWorks leaves edits in place after a failure or interruption. Owned host worktrees otherwise use the recovery archive above when quiescence is proved; inspect the printed cleanup disposition first. If `commit: verified` is enabled, a dirty worktree blocks a new run so unchecked edits cannot be committed automatically. On the same dedicated branch, review the changed files, run the relevant project checks, then commit only the files you have verified. You can instead discard the edits after reviewing them. Rerun the same task and options once the worktree is clean; its default progress file is reused when the task and context are unchanged. Do not delete a lock held by a live run; a stale lock is reclaimed automatically when its owner is gone.
 
 ## Docker execution
 
@@ -711,3 +792,42 @@ To exercise a real Pi model, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scrip
 For a real multi-iteration feedback loop, run `RALPHWORKS_SMOKE_MODEL=provider/model-id scripts/smoke-multi-iteration.sh`. The first independent check deliberately fails and gives the agent a new token. The script verifies that the next iteration reads the feedback, creates the correct files, passes the check, and produces a verified commit. The Smoke workflow runs this test weekly and on manual dispatch with the repository's `ZAI_CODING_CN_API_KEY` Actions secret. It does not run on pull requests, so untrusted PR code cannot access the key or incur model usage. The job has a 15-minute Actions limit; the script also limits the loop to three iterations, 10 minutes, and $1 of reported model cost.
 
 For a configured GitHub target repository, set `RALPHWORKS_SMOKE_TARGET_REPO=owner/repo` and run `scripts/smoke-remote.sh`. The script creates a temporary branch with a checked YAML task, dispatches the target's RalphWorks workflow, validates the downloaded result and patch, and deletes its branch. The target repository must already have the generated workflow, model variable, provider secret, and a RalphWorks source ref pointing to the version under test. This cross-repository check remains manual because it requires a configured external target and write access to temporary branches.
+
+
+## Structured code review validation
+
+`builtin:code-review` now writes `CODE_REVIEW.json` in addition to its final assistant findings. Its write tool is authorized only for that report; the method prohibits source edits, bash, network, and running checks. It reuses the existing pinned Sentry review skill. This adds a required artifact to the previous final-response-only contract.
+
+The core output requirement checks that this file is nonempty and parses as JSON. For authoritative structural and semantic validation, explicitly configure a check:
+
+```bash
+ralph run 'Review the supplied diff and context' --profile builtin:code-review \
+  --check 'ralph review validate CODE_REVIEW.json'
+
+ralph review validate CODE_REVIEW.json \
+  --base-sha 0123456789012345678901234567890123456789 \
+  --head-sha abcdefabcdefabcdefabcdefabcdefabcdefabcd \
+  --diff-sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+The validator reads one local regular file and performs no provider calls or agent execution. Valid reports exit 0 and emit one JSON line, for example `{"schemaVersion":1,"valid":true,"verdict":"clean","findingCount":0}`. Invalid JSON, shapes, limits, revisions, or arguments exit 1, emit a diagnostic on stderr, and leave stdout empty. A valid `findings` or `incomplete` report also exits 0: validation establishes the report contract, and callers decide whether its verdict allows delivery. Symlink input files are rejected.
+
+The [v1 schema](schemas/code-review-result-v1.schema.json) defines the strict shape: `schemaVersion: 1`; `revision` with `baseSha`, `headSha`, and `diffSha256`; `verdict`; nonempty `reviewedScope`; `findings`; and `limitations`. A finding contains `severity` (`P0` through `P3`), normalized relative `path`, positive integer `line`, nonempty `title`, `trigger`, `consequence`, `remedy`, and nonempty `evidence` strings. Unknown fields are rejected. Reports are bounded to 1 MiB of UTF-8 JSON, 500 findings, 100 limitations, 100 evidence entries per finding, 16384 Unicode characters per text, 512 per title, and 4096 per path.
+
+A completed review with any supported finding, including P3, uses `findings`; a completed review with none uses `clean`. Missing required scope or context uses `incomplete`, which may include findings. Record unavailable checks in limitations; source inspection cannot establish passed test results. The validator checks structure and verdict consistency; it cannot establish review truth or detect every missing piece of context.
+
+The agent must copy caller-supplied revision facts exactly and use null for absent facts. SHAs accept 40 or 64 hexadecimal characters; the diff digest accepts 64. Each optional expectation flag requires the corresponding non-null report value to match exactly, including case. Callers must supply their expected facts independently and validate freshness; the command does not inspect Git or calculate a diff digest. Put the known facts in both the review task and the explicit validation check. Profile defaults retain `checks: []`; add the public validation command wherever the caller requires this contract, without importing internal modules.
+
+Security maintenance also supports `--param allowStaticAnalysisFixes=false` to investigate and defer source-code static-analysis findings without repairing them. Its default is true. Dependency and configuration permissions remain independent.
+
+When `allowDependencyUpdates=true` and the task permits dependency maintenance, security maintenance may apply the smallest compatible patched update or narrowly scoped supported override to a confirmed affected installed dependency. Evidence must include the advisory/range, installed version and dependency paths, runtime/development use, patched version, and source-based exposure assessment. Application exploitability may remain unconfirmed or unreachable within the inspected scope; do not fabricate an exploit or equate installed presence with proven exposure. This includes remediation needed for an unchanged required audit. Dependency manifest, override, and lockfile edits for that repair follow `allowDependencyUpdates`. Caller risk thresholds, explicit proven-exploit-only restrictions, and disabled categories remain authoritative. Source-code findings and configuration-hardening findings still require concrete reachability evidence. Broad latest-version updates, unrelated major upgrades, scanner suppression and weakened thresholds are prohibited.
+
+`maxFixes` counts independently justified remediations, not advisory instances or changed files. One coherent package/security repair can resolve several related advisories and dependency paths; unrelated repairs count separately and cannot be bundled to evade the limit. The default remains 3 and the accepted integer range is 1–10. Set an explicit value, such as `--param maxFixes=5`, when the task authorizes a larger bounded repair set.
+
+When no confirmed actionable finding is eligible for repair, security maintenance completes with an evidence-backed `SECURITY_REPORT.md` only. An authorized compatible update to an affected installed dependency is eligible even without proven application exploitability. Add regression tests when necessary to verify protection or compatibility at a changed boundary; dependency resolution, relevant audit results and existing integration checks can verify compatible advisory updates without a new exploit test for every upgrade.
+
+When a dependency update changes a parser or validator generation, compatibility API, or public behavior, compare affected published schemas and accepted inputs before and after through the real application interface, even if application source is unchanged. Preserve supported values and shapes; do not add input limits or change contracts merely to clear an audit. Unrelated passing checks or partial schema matches do not establish compatibility. For concrete reachable behavior already in scope, inspect the installed fix's required conditions and whether the application activates them. Use safe, bounded behavior and legitimate-workflow checks where existing evidence is insufficient. Report advisory resolution, observed application protection and residual limitations separately; a clean audit does not establish required application protection. This does not authorize unrelated hardening or bypass caller scope, category permissions or the independent-remediation limit.
+
+Git staging and index changes remain with RalphWorks. Missing acceptance evidence still blocks completion. Request needs-input for a genuine unresolved decision, an unsupported or breaking repair outside scope, material compatibility uncertainty, or an exhausted explicit repair limit; uncertainty about exploitability alone does not revoke existing dependency-update permission.
+
+Before each agent iteration, declared output destinations must remain inside the workspace with no existing symlink destination or symlink ancestor. Unsafe destinations produce a persisted `blocked` result before the agent runs; existing regular reports and missing report directories remain allowed. This preflight is an output-path guard, not an operating-system sandbox against concurrent filesystem changes.

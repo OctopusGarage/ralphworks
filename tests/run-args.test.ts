@@ -3,6 +3,14 @@ import test from "node:test";
 
 import { parseRunArgs } from "../src/run-args.ts";
 
+for (const help of ["-h", "--help"]) {
+  test(`parseRunArgs rejects ${help} by default for remote-shaped arguments`, () => {
+    const result = parseRunArgs(["--repo", "example/repo", "--ref", "dev", help], {});
+    assert.ok(result instanceof Error);
+    assert.equal(result.message, `Unknown option: ${help}`);
+  });
+}
+
 test("parseRunArgs accepts repeatable checks for Markdown tasks", () => {
   const result = parseRunArgs(["--check", "npm test -- --run", "--check", "npm run build"], {});
   assert.ok(!(result instanceof Error));

@@ -90,7 +90,7 @@ test("documentation and graph variants preserve task tool limits and expose prec
     validateMcpRequirements(profile.environment, {});
   }
   for (const name of ["review-with-docs", "review-with-codegraph"])
-    assert.deepEqual((await resolveTaskProfile(example(name), options)).environment.tools, ["read", "grep", "find", "ls"]);
+    assert.deepEqual((await resolveTaskProfile(example(name), options)).environment.tools, ["read", "write", "grep", "find", "ls"]);
 });
 
 test("DeepWiki research requires an explicit repository and provider binding", async () => {

@@ -17,6 +17,7 @@ export type PiSessionEvent = {
   };
   message?: {
     role?: string;
+    content?: string | Array<{ type: string; text?: string }>;
     provider?: string;
     model?: string;
     stopReason?: string;
@@ -38,6 +39,7 @@ type PiSessionLike = {
 
 type SessionInput = {
   cwd: string;
+  deadline?: number;
   modelRef?: ModelRef;
   piAgentDir?: string;
   skillPaths?: string[];
@@ -78,10 +80,12 @@ export class PiSdkRunner implements AgentRunner {
     cwd: string;
     progress?: string;
     signal?: AbortSignal;
+    deadline?: number;
     environment?: TaskEnvironment;
   }): Promise<IterationResult> {
     const session = await this.#createSession({
       cwd: input.cwd,
+      ...(input.deadline === undefined ? {} : { deadline: input.deadline }),
       ...((input.environment ?? this.#environment) ? { environment: input.environment ?? this.#environment } : {}),
       ...(this.#mcpBindings ? { mcpBindings: this.#mcpBindings } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
@@ -90,10 +94,9 @@ export class PiSdkRunner implements AgentRunner {
       ...(this.#piAgentDir ? { piAgentDir: this.#piAgentDir } : {}),
     });
     const events: RunnerEvent[] = [...(session.environmentEvents ?? [])];
-    let output = "";
     let currentAssistantText = "";
     let lastAssistantText = "";
-    const assistantErrors: string[] = [];
+    let assistantError: string | undefined;
     const abort = () => {
       void session.abort?.().catch(() => undefined);
     };
@@ -103,25 +106,39 @@ export class PiSdkRunner implements AgentRunner {
       if (normalized && events.length < 1000) {
         events.push(normalized);
       }
+      if (event.type === "message_start" && event.message?.role === "assistant") {
+        currentAssistantText = "";
+        lastAssistantText = "";
+      }
       if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
         const delta = event.assistantMessageEvent.delta ?? "";
-        output = (output + delta).slice(-4096);
         currentAssistantText = (currentAssistantText + delta).slice(-4096);
       }
       if (event.type === "message_end" && event.message?.role === "assistant") {
-        if (currentAssistantText.trim()) lastAssistantText = currentAssistantText;
+        // Completion belongs to this response; prior failed or superseded text stays out of the handoff.
+        lastAssistantText =
+          event.message.content === undefined
+            ? currentAssistantText
+            : typeof event.message.content === "string"
+              ? event.message.content.slice(-4096)
+              : event.message.content
+                  .filter((block) => block.type === "text")
+                  .map((block) => block.text ?? "")
+                  .join("\n")
+                  .slice(-4096);
         currentAssistantText = "";
-      }
-      if (event.type === "message_end" && event.message?.role === "assistant" && event.message.stopReason === "error") {
-        const errorMessage = redactSensitiveValues(event.message.errorMessage ?? "Pi assistant stopped with an error");
-        assistantErrors.push(errorMessage);
-        output = (output + errorMessage).slice(-4096);
+        assistantError =
+          event.message.stopReason === "error"
+            ? redactSensitiveValues(event.message.errorMessage ?? "Pi assistant stopped with an error")
+            : event.message.stopReason === "aborted"
+              ? "Pi assistant aborted"
+              : undefined;
       }
     });
 
     try {
       input.signal?.throwIfAborted();
-      await session.prompt(buildRalphPrompt(input.job, input.iteration, input.progress ?? ""));
+      await session.prompt(buildRalphPrompt(input.job, input.iteration, input.progress ?? "", input.deadline));
       await session.waitForIdle?.();
     } finally {
       unsubscribe();
@@ -129,22 +146,22 @@ export class PiSdkRunner implements AgentRunner {
       await session.dispose?.();
     }
 
-    const blocked = assistantErrors.length > 0;
-    const handoff = lastAssistantText || currentAssistantText;
+    const blocked = assistantError !== undefined;
+    const handoff = currentAssistantText || lastAssistantText;
     const inputRequest = handoff.match(/(?:^|\n)<needs-input>([\s\S]*?)<\/needs-input>\s*$/u)?.[1]?.trim();
     return {
       status: blocked ? "blocked" : inputRequest ? "needs_input" : "continue",
       summary: blocked
-        ? `Pi iteration ${input.iteration} blocked: ${assistantErrors.at(-1)}`
+        ? `Pi iteration ${input.iteration} blocked: ${assistantError}`
         : redactSensitiveValues(inputRequest ? inputRequest.slice(0, 600) : summarizeAssistant(handoff, input.iteration)),
-      output: redactSensitiveValues(output),
+      output: redactSensitiveValues(assistantError ?? handoff).slice(-4096),
       events,
       costUsd: session.getSessionStats?.().cost,
     };
   }
 }
 
-function buildRalphPrompt(job: RalphJob, iteration: number, progress: string): string {
+function buildRalphPrompt(job: RalphJob, iteration: number, progress: string, deadline?: number): string {
   const completion = job.completionPromise
     ? `When the task is genuinely complete, output <promise>${job.completionPromise}</promise>.`
     : "No completion promise is configured; continue until the orchestrator stops the loop.";
@@ -154,6 +171,20 @@ function buildRalphPrompt(job: RalphJob, iteration: number, progress: string): s
     "",
     `Job: ${job.name}`,
     `Iteration: ${iteration}`,
+    ...(deadline === undefined
+      ? []
+      : [
+          `Agent/check deadline (UTC): ${new Date(deadline).toISOString()}`,
+          `Remaining at prompt creation: ${Math.max(0, Math.floor((deadline - Date.now()) / 1000))} seconds`,
+          "This is the enforced deadline for work, report handoff and scheduled checks together, not an allowance for this iteration alone.",
+          "Before long commands, recompute remaining time. Leave time to finish the required report and return for scheduled checks; save verified results incrementally rather than at the deadline.",
+        ]),
+    "",
+    "Configured checks run independently by RalphWorks after you return:",
+    ...(job.checks.length ? job.checks.map((command) => `- ${JSON.stringify(command)}`) : ["(none)"]),
+    `Check timeout cap: ${job.checkTimeoutSeconds} seconds per check, bounded by the remaining run deadline.`,
+    "Run focused verification for your changes. Do not manually repeat a scheduled check on unchanged inputs solely to duplicate this automatic gate; run it when needed for baseline, diagnosis or explicit task requirements.",
+    "Never report scheduled checks as already passed unless you actually executed them. RalphWorks determines completion after running checks and validating outputs.",
     "",
     "Task:",
     job.task,
@@ -166,7 +197,9 @@ function buildRalphPrompt(job: RalphJob, iteration: number, progress: string): s
     "- If a check failed, address its feedback from progress before claiming completion.",
     "- Use the task's acceptance criteria to decide what remains; do not treat an attempted change as completion.",
     "- Preserve existing user changes.",
-    "- Do not make Git commits; RalphWorks handles verified commits after checks.",
+    job.commit === "verified"
+      ? "- Do not make Git commits; RalphWorks handles verified commits after checks."
+      : "- Do not make Git commits; RalphWorks leaves changes uncommitted for caller review and delivery.",
     "- Run relevant checks when possible.",
     "- End with a concise handoff: item addressed, evidence from checks, files changed, and the next unfinished item or blocker.",
     "- Investigate questions you can resolve yourself. If a decision or missing information genuinely requires a person, end with <needs-input>one concrete question and the relevant findings</needs-input>. Do not claim completion.",

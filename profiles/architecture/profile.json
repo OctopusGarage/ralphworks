@@ -11,12 +11,16 @@
     },
     "maxChanges": {
       "type": "number",
-      "default": 3
+      "default": 3,
+      "minimum": 1,
+      "maximum": 10,
+      "integer": true
     }
   },
   "defaults": {
     "maxIterations": 5,
     "maxMinutes": 30,
+    "checkTimeoutSeconds": 180,
     "commit": "none"
   },
   "checks": [],
