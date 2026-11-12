@@ -43,9 +43,10 @@ test("SIGINT waits for the launched test to exit and removes only its owned TMP"
   const sentinel = join(root, "outside.txt");
   await writeFile(sentinel, "keep outside evidence");
   const file = join(root, "signal.test.mjs");
+  // Publish readiness only after all worker metadata is written.
   await writeFile(
     file,
-    `import test from 'node:test';import{tmpdir}from'node:os';import{writeFile}from'node:fs/promises';test('wait',async()=>{await writeFile(${JSON.stringify(barrier)},JSON.stringify({pid:process.pid,tmp:tmpdir()}));await new Promise(r=>setTimeout(r,5000));});`,
+    `import test from 'node:test';import{tmpdir}from'node:os';import{writeFile,rename}from'node:fs/promises';test('wait',async()=>{const ready=${JSON.stringify(barrier)};await writeFile(ready+'.tmp',JSON.stringify({pid:process.pid,tmp:tmpdir()}));await rename(ready+'.tmp',ready);await new Promise(r=>setTimeout(r,5000));});`,
   );
   const child = spawn(process.execPath, [resolve("scripts/run-tests.mjs"), file], { stdio: ["ignore", "pipe", "pipe"] });
   child.stdout.resume();
