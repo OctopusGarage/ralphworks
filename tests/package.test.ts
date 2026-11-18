@@ -22,6 +22,7 @@ test("package publishes compiled JavaScript CLI bins", async () => {
     "docs/TASK_PROFILE_EVALUATION.md",
     "docs/CAPABILITY_PROFILES.md",
     "docs/assets/ralphworks-overview.svg",
+    "patches/",
   ]);
   assert.equal(pkg.scripts.build, "tsc -p tsconfig.build.json");
   assert.equal(pkg.scripts.prepack, "pnpm build");
