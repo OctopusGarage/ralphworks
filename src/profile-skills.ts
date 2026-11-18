@@ -211,7 +211,7 @@ export class ProfileSkills {
     await atomicJson(profileLockPath(top), { version: 1, skills: pins });
   }
   async save(): Promise<void> {
-    // Run refreshes are ephemeral. Explicit updates atomically publish the complete portable pin set.
+    // Cache first-use pins even during runs. Explicit updates publish the portable pin set.
     if (this.update === "all") {
       const pins = await this.portable(
         [...this.entries.values()].filter((entry) => !entry.hub),
@@ -220,6 +220,6 @@ export class ProfileSkills {
       for (const [key, entry] of this.entries) if (entry.hub) pins[key] = entry.hub;
       await this.legacy.save();
       await this.saveLock(pins);
-    } else if (this.update !== "auto") await this.legacy.save();
+    } else await this.legacy.save();
   }
 }

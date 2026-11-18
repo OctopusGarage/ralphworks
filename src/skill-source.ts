@@ -290,8 +290,11 @@ export class SkillSources {
     this.pins.set(key, pin);
     if (!previous || shouldUpdate) {
       this.refreshed.add(key);
-      this.entries[key] = pin;
-      this.dirty = true;
+      // First-use pins persist; automatic refreshes leave an existing baseline unchanged.
+      if (!previous || this.update !== "auto") {
+        this.entries[key] = pin;
+        this.dirty = true;
+      }
       this.updates.push({ ...skill, previousCommit: previous?.commit, commit: pin.commit });
     }
     return pin;

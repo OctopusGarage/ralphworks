@@ -128,6 +128,27 @@ async function fixture(
   }
 }
 
+test("first run pins inline GitHub skills and keeps automatic refreshes separate from the offline baseline", async () => {
+  for (const autoUpdate of [undefined, false, true]) {
+    await fixture(async ({ repo, cwd, home, git, source, profile }) => {
+      await profile([{ ...source, ...(autoUpdate === undefined ? {} : { autoUpdate }) }]);
+      const options = { cwd, home };
+      const first = await resolveTaskProfile("./profile.json", { ...options, updateSkills: "auto" });
+      const baseline = first.manifest.remoteSkills?.[0].commit;
+      assert.equal(baseline, git("rev-parse", "HEAD"));
+      await writeFile(join(repo, "skills/review/SKILL.md"), "updated upstream");
+      git("commit", "-qam", "updated");
+      const next = await resolveTaskProfile("./profile.json", { ...options, updateSkills: "auto" });
+      assert.equal(next.manifest.remoteSkills?.[0].commit, autoUpdate ? git("rev-parse", "HEAD") : baseline);
+      assert.equal((await resolveTaskProfile("./profile.json", options)).manifest.remoteSkills?.[0].commit, baseline);
+      await rm(repo, { recursive: true });
+      const offline = await resolveTaskProfile("./profile.json", { ...options, updateSkills: "auto" });
+      assert.equal(offline.manifest.remoteSkills?.[0].commit, baseline);
+      assert.equal(await readFile(offline.skillPaths[0], "utf8"), "original");
+    });
+  }
+});
+
 test("failed multi-source refresh preserves every old pin and staged snapshot", async () => {
   await fixture(async ({ repo, cwd, home, git, source, profile }) => {
     await mkdir(join(repo, "other"));
