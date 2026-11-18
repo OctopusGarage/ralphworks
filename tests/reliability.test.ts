@@ -275,13 +275,14 @@ test("wall clock budget aborts a running iteration and persists timeout", async 
 });
 
 test("timeout keeps the workspace lock until the runner has stopped", async () => {
-  const { cwd, jobPath } = await fixture(["max_iterations: 1", "max_minutes: 0.001", "checks:", '  - node -e "process.exit(0)"']);
+  const { cwd, jobPath } = await fixture(["max_iterations: 1", "max_minutes: 0.01", "checks:", '  - node -e "process.exit(0)"']);
   let runnerStopped = false;
   const result = await runLocalJob(jobPath, {
     cwd,
     runner: {
-      async runIteration() {
-        await new Promise((resolve) => setTimeout(resolve, 180));
+      async runIteration(input) {
+        await new Promise<void>((resolve) => input.signal.addEventListener("abort", () => resolve(), { once: true }));
+        await new Promise((resolve) => setTimeout(resolve, 50));
         await writeFile(join(cwd, "late.txt"), "late\n");
         runnerStopped = true;
         return { status: "continue", summary: "late" };
@@ -459,4 +460,27 @@ test("agent commits cannot bypass RalphWorks checks and commit policy", async ()
   assert.equal(result.status, "blocked");
   assert.match(result.reason ?? "", /agent changed Git HEAD/);
   assert.equal(result.checks.length, 0);
+});
+
+test("cancellation arriving while an iteration listener is installed does not invoke the runner", async () => {
+  const { cwd, jobPath } = await fixture(["max_iterations: 1"]);
+  const interrupt = new AbortController();
+  const listen = interrupt.signal.addEventListener.bind(interrupt.signal);
+  interrupt.signal.addEventListener = (...args: Parameters<AbortSignal["addEventListener"]>) => {
+    interrupt.abort("SIGINT");
+    listen(...args);
+  };
+  let invoked = false;
+  const result = await runLocalJob(jobPath, {
+    cwd,
+    signal: interrupt.signal,
+    runner: {
+      async runIteration() {
+        invoked = true;
+        return { status: "continue", summary: "should not run" };
+      },
+    },
+  });
+  assert.equal(result.status, "cancelled");
+  assert.equal(invoked, false);
 });

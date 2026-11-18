@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:web-accessibility": {
+      "source": {
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "path": "skills/accessibility",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "afa8da942115f2961fdbfa80807ea0b232ff6c00"
+      },
+      "scope": "builtin",
+      "snapshot": "0538d84d7bca0e7ad4ed1c1cc141b163ebd4544753a33c00724fe9ddb4c8078b",
+      "importedAt": "2026-10-20T09:41:56.974Z",
+      "use": "builtin:web-accessibility"
+    }
+  }
+}

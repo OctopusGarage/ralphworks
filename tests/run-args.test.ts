@@ -3,6 +3,14 @@ import test from "node:test";
 
 import { parseRunArgs } from "../src/run-args.ts";
 
+for (const help of ["-h", "--help"]) {
+  test(`parseRunArgs rejects ${help} by default for remote-shaped arguments`, () => {
+    const result = parseRunArgs(["--repo", "example/repo", "--ref", "dev", help], {});
+    assert.ok(result instanceof Error);
+    assert.equal(result.message, `Unknown option: ${help}`);
+  });
+}
+
 test("parseRunArgs accepts repeatable checks for Markdown tasks", () => {
   const result = parseRunArgs(["--check", "npm test -- --run", "--check", "npm run build"], {});
   assert.ok(!(result instanceof Error));
@@ -154,4 +162,20 @@ test("parseRunArgs accepts contexts and job overrides", () => {
       },
     },
   );
+});
+
+test("JSON job overrides reject task injection, unsupported keys and invalid limits", () => {
+  for (const overrides of [
+    { task: "replace task" },
+    { progressFile: "/outside" },
+    { maxIterations: 0 },
+    { maxMinutes: -1 },
+    { commit: "anything" },
+    { checkTimeoutSeconds: 0 },
+    { completionPromise: "" },
+    { checks: ["echo injected"] },
+  ]) {
+    const result = parseRunArgs([], { RALPHWORKS_JOB_OVERRIDES_JSON: JSON.stringify(overrides) });
+    assert.ok(result instanceof Error, JSON.stringify(overrides));
+  }
 });

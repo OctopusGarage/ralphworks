@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "snapshot": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+  "files": [
+    { "path": ".upstream/LICENSE", "sha256": "a5213d3fb5a350abbd283067fabd664cc2f970dc59c5d3f583928a39ce13a6e1", "executable": 0 },
+    { "path": "_shared/common.md", "sha256": "10734c133f972fd3810e466868a80c3734b1229c428468cec57d5d481776ef3a", "executable": 0 },
+    {
+      "path": "_shared/custom-risks-guide.md",
+      "sha256": "73dc58eb41fc44fd281650b1b0e80b7d2d59f2b1422aea6da2cb8f117c07c1a0",
+      "executable": 0
+    },
+    { "path": "_shared/decay-risks.md", "sha256": "34b06a211c673ebb7072c27975c7e59d430234d3eadf9fafa7038e417860f013", "executable": 0 },
+    { "path": "_shared/remedy-guide.md", "sha256": "576062915418ebb1e2935ae33986c2e8f1caff8cebdbd704d4f5d87c47abbaf9", "executable": 0 },
+    { "path": "_shared/source-coverage.md", "sha256": "e3f9aadc17db20be17e89467f65aed91dbc1d3b17cd4896ad356b5963368820c", "executable": 0 },
+    {
+      "path": "_shared/test-decay-risks.md",
+      "sha256": "2d293675d0dd56b9b7ab43cf08533b2b1e927066056bca726ffbc6b3d300415e",
+      "executable": 0
+    },
+    { "path": "brooks-audit/SKILL.md", "sha256": "ba71c1211d12e66b9180a6cd7f28509566c818a803b93667b8dff0a28200a706", "executable": 0 },
+    {
+      "path": "brooks-audit/architecture-guide.md",
+      "sha256": "256ea669eb7433d54ac6a5d18271c01e1b75f7e9eae18274d64636e9372a2f52",
+      "executable": 0
+    },
+    {
+      "path": "brooks-audit/onboarding-guide.md",
+      "sha256": "167e50f6429b5757ad67bdc6e1a4bcc34fdc59a98e3be015b64eef1e76b3fe19",
+      "executable": 0
+    },
+    { "path": "brooks-debt/SKILL.md", "sha256": "8ee2164c75fe5f82ea6cd64ff62c32712c4d8d8539a4cba6620bd9a90b087151", "executable": 0 },
+    { "path": "brooks-debt/debt-guide.md", "sha256": "d539b3cf93438f330acd533b23dfe3f20e33d51172f4b5c3f52a86549469f104", "executable": 0 },
+    { "path": "brooks-health/SKILL.md", "sha256": "aee85b300826390a681da03c74cfbc80e96e28a9f5f6c47f6f6ea27bcda65d15", "executable": 0 },
+    {
+      "path": "brooks-health/health-guide.md",
+      "sha256": "2918b0e136384c518a75ee961780904c75670cef7cd7b7f04ba6a158f59f0f92",
+      "executable": 0
+    },
+    { "path": "brooks-review/SKILL.md", "sha256": "e98b77fbb618109c9e74219721f1c1ca7a4b2ce60edbff40e850ea89e1c27b9e", "executable": 0 },
+    {
+      "path": "brooks-review/pr-review-guide.md",
+      "sha256": "cda0f328189b234c5483dbc445319b5313854deb88b0c0747c9c3b6ef86977ee",
+      "executable": 0
+    },
+    { "path": "brooks-sweep/SKILL.md", "sha256": "401eedb5bda3907284fb8a0ee688aabf3ae4eb9afb0b883a59ffb8f0714c82d5", "executable": 0 },
+    {
+      "path": "brooks-sweep/sweep-guide.md",
+      "sha256": "090b9128f76f7708ceef5ac39007aa652904122f1bc873b16db19cbbfda1569a",
+      "executable": 0
+    },
+    { "path": "brooks-test/SKILL.md", "sha256": "f4c17c845913b7e4b677a9959c2e86d49c8d87781faddffcc82ee9622e439bb9", "executable": 0 },
+    { "path": "brooks-test/test-guide.md", "sha256": "381422b443fcb32b4ce8beb46fb37d60d767efb80a08e72d23a6daa0bef16023", "executable": 0 }
+  ]
+}

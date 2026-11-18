@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:anthropic-frontend-design": {
+      "source": {
+        "source": "https://github.com/anthropics/skills",
+        "path": "skills/frontend-design",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44"
+      },
+      "scope": "builtin",
+      "snapshot": "2df8544cbcb4af1e766327b26c989128195e3e8da20fa6fcf780ed53a319f981",
+      "importedAt": "2026-10-20T09:41:57.405Z",
+      "use": "builtin:anthropic-frontend-design"
+    }
+  }
+}

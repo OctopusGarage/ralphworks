@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "ui-with-playwright",
+  "description": "Ui with playwright",
+  "extends": ["builtin:ui-implementation"],
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:playwright-cli"],
+  "environment": {
+    "resourceInheritance": "none",
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  }
+}

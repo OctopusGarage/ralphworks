@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:mattpocock-diagnosing-bugs": {
+      "source": {
+        "source": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/diagnosing-bugs",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+      },
+      "scope": "builtin",
+      "snapshot": "553cd879835ee819f868760822763b5bb83d1e39df1137cbbf962a7e7cad93c9",
+      "importedAt": "2026-10-20T10:59:11.322Z",
+      "use": "builtin:mattpocock-diagnosing-bugs"
+    }
+  }
+}

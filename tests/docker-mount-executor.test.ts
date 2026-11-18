@@ -77,3 +77,50 @@ test("runDockerMountJob exposes linked worktree Git metadata to the container", 
   }).trim();
   assert.ok(args.includes(`${commonDir}:${commonDir}`));
 });
+
+test("Docker mount executes a prepared task with container skill paths instead of reloading caller inputs", async () => {
+  const { mkdir, readFile, writeFile } = await import("node:fs/promises");
+  const { resolveTask, stageTaskSkills } = await import("../src/resolved-task.ts");
+  const cwd = await mkdtemp(join(tmpdir(), "ralph-prepared-docker-"));
+  const profile = join(cwd, "profile");
+  await mkdir(join(profile, "skill"), { recursive: true });
+  await writeFile(join(profile, "profile.json"), JSON.stringify({ version: 1, name: "review", skills: ["skill"] }));
+  await writeFile(join(profile, "skill", "SKILL.md"), "Review carefully.");
+  const task = await stageTaskSkills(await resolveTask("Review", { cwd, profile }), cwd);
+  let args: string[] = [];
+  await runDockerMountJob({
+    cwd,
+    jobPath: "Review",
+    runner: "dry-run",
+    preparedTask: task,
+    runCommand: async (_file, input) => {
+      args = input;
+      return { exitCode: 0, stdout: "", stderr: "" };
+    },
+  });
+  const variable = args.find((value) => value.startsWith("RALPHWORKS_PREPARED_TASK="));
+  assert.ok(variable);
+  const path = variable.split("=")[1].replace("/workspace", cwd);
+  const prepared = JSON.parse(await readFile(path, "utf8"));
+  assert.match(prepared.skillPaths[0], /^\/workspace\/\.ralph\/inputs/);
+  assert.match(prepared.job.task, /Skill: \/workspace\//);
+  assert.equal(prepared.job.progressFile, task.job.progressFile);
+});
+
+test("Docker forwards selected MCP credential variable names without embedding their values", async () => {
+  let args: string[] = [];
+  await runDockerMountJob({
+    cwd: "/tmp/workspace",
+    jobPath: "Task",
+    runner: "pi",
+    mcpBindings: { docs: { transport: "http", url: "http://host.docker.internal:9000/mcp", headers: { Authorization: "DOCS_AUTH" } } },
+    env: { DOCS_AUTH: "secret-auth" },
+    runCommand: async (_file, values) => {
+      args = values;
+      return { exitCode: 0, stdout: "", stderr: "" };
+    },
+  });
+  assert.ok(args.includes("DOCS_AUTH"));
+  assert.ok(args.some((value) => value.startsWith("RALPHWORKS_MCP_BINDINGS_JSON=")));
+  assert.ok(!args.some((value) => value.includes("secret-auth")));
+});

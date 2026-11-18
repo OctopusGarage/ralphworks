@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "coverage-with-playwright",
+  "description": "Coverage with playwright",
+  "extends": ["builtin:test-coverage"],
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:playwright-cli"],
+  "environment": {
+    "resourceInheritance": "none",
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  },
+  "parameters": {
+    "includeE2E": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

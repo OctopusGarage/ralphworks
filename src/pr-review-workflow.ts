@@ -69,7 +69,7 @@ export const PR_REVIEW_WORKFLOW = [
   "        run: |",
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"; fi',
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/review-task.md" --executor host --check \'test -s .ralph/review.md\' --max-iterations 2 --max-minutes 20 --max-cost-usd 1',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/review-task.md" --executor host --check \'test -s .ralph/review.md\' --max-iterations 2 --max-minutes 20 --max-cost-usd 1 --workspace current',
   "      - uses: actions/upload-artifact@v4",
   "        if: always() && steps.ralph.outcome != 'skipped'",
   "        with:",

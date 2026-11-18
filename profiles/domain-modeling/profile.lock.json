@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:mattpocock-domain-modeling": {
+      "source": {
+        "source": "https://github.com/mattpocock/skills",
+        "path": "skills/engineering/domain-modeling",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+      },
+      "scope": "builtin",
+      "snapshot": "fc81ee592f0966078c414f5006ff4aa673b4f8b7e113237bd0c992d6211fa86d",
+      "importedAt": "2026-10-20T10:59:11.698Z",
+      "use": "builtin:mattpocock-domain-modeling"
+    }
+  }
+}

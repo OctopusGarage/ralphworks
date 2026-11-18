@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "coding",
+  "description": "Implement a focused code change",
+  "prompts": ["prompt.md"],
+  "skills": [],
+  "parameters": {},
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": [],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [],
+  "category": "delivery"
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:sentry-code-review": {
+      "source": {
+        "source": "https://github.com/getsentry/skills",
+        "path": "skills/code-review",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "f57ada2d0b640406ea7e25b11d636c530e77c58b"
+      },
+      "scope": "builtin",
+      "snapshot": "07b09e4217d7969fdd0ab39aaa17527b23aab921671fdd8add8cb328f5980ec0",
+      "importedAt": "2026-10-20T09:41:57.020Z",
+      "use": "builtin:sentry-code-review"
+    }
+  }
+}

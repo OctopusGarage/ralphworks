@@ -159,3 +159,13 @@ test("initProject appends the runtime ignore to an existing gitignore once", asy
   assert.deepEqual(second.updated, []);
   assert.equal(await readFile(join(workspace, ".gitignore"), "utf8"), "node_modules/\n.ralph/\n");
 });
+
+test("generated delivery workflows pin the checkout workspace independently of project runtime defaults", async () => {
+  const workspace = await mkdtemp(join(tmpdir(), "ralphworks-workflow-workspace-"));
+  const result = await initProject(workspace);
+  for (const path of result.created.filter((path) => path.endsWith(".yml") && !path.includes("queue"))) {
+    const workflow = await readFile(join(workspace, path), "utf8");
+    for (const command of workflow.split("\n").filter((line) => line.includes('dist/cli.js" run ')))
+      assert.match(command, /--workspace current/, path);
+  }
+});

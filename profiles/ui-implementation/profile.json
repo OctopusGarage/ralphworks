@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "name": "ui-implementation",
+  "description": "Implement a focused interface using existing design conventions",
+  "category": "design",
+  "prompts": ["prompt.md"],
+  "skills": ["builtin:anthropic-frontend-design", "builtin:playwright-cli"],
+  "parameters": {
+    "scope": {
+      "type": "string",
+      "default": "project"
+    }
+  },
+  "defaults": {
+    "maxIterations": 5,
+    "maxMinutes": 30,
+    "commit": "none"
+  },
+  "checks": [],
+  "artifacts": ["UI_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": ["playwright-cli"],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "UI_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

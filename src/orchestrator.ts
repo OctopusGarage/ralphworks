@@ -3,11 +3,15 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { type CheckResult, runCheck } from "./check-runner.ts";
 import { commitVerifiedChanges, currentGitHead, verifyCleanGitWorkspace, workspaceFingerprint } from "./git-transaction.ts";
-import { loadJob, prepareJob, type RalphJob } from "./job.ts";
+import { loadJob, type RalphJob } from "./job.ts";
 import { redactSensitiveValues } from "./redact.ts";
+import { type ResolvedTask, resolveTask } from "./resolved-task.ts";
 import type { JobOverrides } from "./run-args.ts";
 import { withRunLock } from "./run-lock.ts";
+import { resolveStateDirectory, stateProgressFile } from "./run-state.ts";
 import { type AgentRunner, DryRunRunner, type IterationResult } from "./runner.ts";
+import { checkTaskOutputPaths, checkTaskPrerequisites, validateTaskOutputs } from "./task-contracts.ts";
+import { normalizeTaskEnvironment } from "./task-environment.ts";
 
 type RunStatus = "completed" | "blocked" | "needs_input" | "cancelled" | "max_iterations" | "timed_out" | "budget_exhausted" | "failed";
 
@@ -27,12 +31,20 @@ export type RalphRunResult = {
 
 type RunOptions = {
   cwd?: string;
+  stateDir?: string;
   runner?: AgentRunner;
   unattended?: boolean;
   signal?: AbortSignal;
   checksOverride?: string[];
   contexts?: string[];
   jobOverrides?: JobOverrides;
+  profile?: string;
+  params?: Record<string, string>;
+  preparedTask?: ResolvedTask;
+  prepareTask?: (task: ResolvedTask) => Promise<{ task: ResolvedTask; runner?: AgentRunner }>;
+  runtime?: Record<string, unknown>;
+  onProcessSpawn?: (pid: number) => void;
+  finalize?: (result: RalphRunResult | undefined, executionStarted: boolean) => Promise<void>;
 };
 
 type RalphEvent = {
@@ -47,21 +59,42 @@ type RalphEvent = {
 
 export async function runLocalJob(jobPath: string, options: RunOptions = {}): Promise<RalphRunResult> {
   const cwd = resolve(options.cwd ?? process.cwd());
-  return withRunLock(cwd, () => runLocalJobUnlocked(jobPath, options, cwd));
+  const stateDir = await resolveStateDirectory(cwd, options.stateDir);
+  return withRunLock(cwd, async () => {
+    let result: RalphRunResult | undefined;
+    let executionStarted = false;
+    try {
+      if (options.prepareTask) {
+        const task =
+          options.preparedTask ??
+          (await resolveTask(jobPath, {
+            cwd,
+            autoUpdateSkills: true,
+            profile: options.profile,
+            params: options.params,
+            checks: options.checksOverride,
+            contexts: options.contexts,
+            jobOverrides: options.jobOverrides,
+          }));
+        const prepared = await options.prepareTask(task);
+        options = { ...options, preparedTask: prepared.task, runner: prepared.runner ?? options.runner };
+      }
+      executionStarted = true;
+      result = await runLocalJobUnlocked(jobPath, options, cwd, stateDir);
+      return result;
+    } finally {
+      // Result consumers and owned-workspace finalization share the original exclusion interval.
+      await options.finalize?.(result, executionStarted);
+    }
+  });
 }
 
-async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: string): Promise<RalphRunResult> {
+async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: string, stateDir: string): Promise<RalphRunResult> {
   const resolvedJobPath = resolvePath(cwd, jobPath);
-  let job = await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath);
-  if (options.checksOverride) job.checks = options.checksOverride;
-  applyJobOverrides(job, options.jobOverrides);
-  job.maxMinutes ??= 30;
-  if (options.unattended ?? (process.env.RALPHWORKS_UNATTENDED === "1" || process.env.GITHUB_ACTIONS === "true")) {
-    job.maxCostUsd ??= 3;
-  }
+  let job = options.preparedTask?.job ?? (await loadJob((await exists(resolvedJobPath)) ? resolvedJobPath : jobPath));
   const runner = options.runner ?? new DryRunRunner();
 
-  const runDir = join(cwd, ".ralph", "runs", `${slug(job.name)}-${timestamp()}`);
+  const runDir = join(stateDir, "runs", `${slug(job.name)}-${timestamp()}`);
   const eventsPath = join(runDir, "events.jsonl");
   const resultPath = join(runDir, "result.json");
 
@@ -75,7 +108,38 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
   let reason: string | undefined;
   let lastSummary: string | undefined;
   try {
-    job = await prepareJob(job, cwd, options.contexts ?? []);
+    const resolvedTask =
+      options.preparedTask ??
+      (await resolveTask(jobPath, {
+        cwd,
+        autoUpdateSkills: true,
+        profile: options.profile,
+        params: options.params,
+        checks: options.checksOverride,
+        contexts: options.contexts,
+        jobOverrides: options.jobOverrides,
+      }));
+    job = resolvedTask.job;
+    if (options.stateDir !== undefined) job = { ...job, progressFile: stateProgressFile(job.progressFile, stateDir) };
+    job.maxMinutes ??= 30;
+    if (options.unattended ?? (process.env.RALPHWORKS_UNATTENDED === "1" || process.env.GITHUB_ACTIONS === "true")) job.maxCostUsd ??= 3;
+    await writeFile(
+      join(runDir, "task.json"),
+      JSON.stringify(
+        {
+          ...resolvedTask,
+          job,
+          runtime:
+            options.stateDir === undefined
+              ? (options.runtime ?? resolvedTask.runtime)
+              : { ...(options.runtime ?? resolvedTask.runtime), stateDir },
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    await checkTaskPrerequisites(resolvedTask.environment ?? normalizeTaskEnvironment(undefined), cwd);
     await ensureProgressFile(cwd, job);
     await appendEvent(eventsPath, event("run_started", job));
     const deadline = job.maxMinutes === undefined ? undefined : Date.now() + job.maxMinutes * 60_000;
@@ -109,6 +173,13 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           reason = "cost budget exhausted";
           break;
         }
+        try {
+          await checkTaskOutputPaths(resolvedTask.outputs ?? [], cwd);
+        } catch (error) {
+          status = "blocked";
+          reason = error instanceof Error ? error.message : String(error);
+          break;
+        }
         iterations = iteration;
         await appendEvent(eventsPath, event("iteration_started", job, iteration));
         const headBefore = await currentGitHead(cwd);
@@ -122,10 +193,12 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
             runner,
             {
               job,
+              environment: resolvedTask.environment,
               iteration,
               cwd,
               progress: await readProgressForPrompt(progressPath),
               signal: controller.signal,
+              deadline,
             },
             controller,
             deadline,
@@ -141,6 +214,11 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
         }
         const runnerEvents = iterationResult.events ?? [];
         for (const runnerEvent of runnerEvents.slice(0, 1000)) {
+          if (runnerEvent.type === "pi_environment_ready")
+            await writeFile(
+              join(runDir, `environment-${iteration}.json`),
+              redactSensitiveValues(JSON.stringify(runnerEvent.details, null, 2)) + "\n",
+            );
           await appendEvent(eventsPath, { ...event(runnerEvent.type, job, iteration), details: runnerEvent.details });
         }
         if (runnerEvents.length > 1000) {
@@ -174,7 +252,13 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
           for (const command of job.checks) {
             await appendEvent(eventsPath, { ...event("check_started", job, iteration), details: { command } });
             const remaining = deadline === undefined ? Infinity : Math.max(1, deadline - Date.now());
-            const checkResult = await runCheck(command, cwd, Math.min(job.checkTimeoutSeconds * 1000, remaining), options.signal);
+            const checkResult = await runCheck(
+              command,
+              cwd,
+              Math.min(job.checkTimeoutSeconds * 1000, remaining),
+              options.signal,
+              options.onProcessSpawn,
+            );
             checkResults.push(checkResult);
             checks.push({ iteration, ...checkResult });
             await appendEvent(eventsPath, { ...event("check_finished", job, iteration), details: checkResult });
@@ -190,7 +274,17 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
             }
           }
         }
-        const checksPassed = checkResults.length === job.checks.length && checkResults.every((check) => check.exitCode === 0);
+        if (!reason) {
+          const outputs = await validateTaskOutputs(resolvedTask.outputs ?? [], cwd);
+          for (const output of outputs) {
+            checkResults.push(output);
+            checks.push({ iteration, ...output });
+            await appendEvent(eventsPath, { ...event("check_finished", job, iteration), details: output });
+          }
+        }
+        const checksPassed =
+          checkResults.length === job.checks.length + (resolvedTask.outputs?.length ?? 0) &&
+          checkResults.every((check) => check.exitCode === 0);
         if (!reason && options.signal?.aborted) {
           status = "cancelled";
           reason = interruptionReason(options.signal);
@@ -257,7 +351,7 @@ async function runLocalJobUnlocked(jobPath: string, options: RunOptions, cwd: st
     ...(lastSummary ? { lastSummary } : {}),
   };
   await writeFile(resultPath, JSON.stringify(result, null, 2) + "\n", "utf8");
-  await writeFile(join(cwd, ".ralph", "current"), join("runs", basename(runDir)) + "\n", "utf8");
+  await writeFile(join(stateDir, "current"), join("runs", basename(runDir)) + "\n", "utf8");
   return result;
 }
 
@@ -294,6 +388,7 @@ async function runWithDeadline(
   controller: AbortController,
   deadline: number | undefined,
 ): Promise<IterationResult> {
+  if (controller.signal.aborted) throw new Error("iteration aborted before execution");
   if (deadline === undefined) return runner.runIteration(input);
   const remaining = Math.max(1, deadline - Date.now());
   const timer = setTimeout(() => controller.abort(), remaining);
@@ -372,16 +467,6 @@ async function exists(path: string): Promise<boolean> {
     () => true,
     (error) => (isNotFound(error) ? false : Promise.reject(error)),
   );
-}
-
-function applyJobOverrides(job: RalphJob, overrides: JobOverrides | undefined): void {
-  if (!overrides) return;
-  if (overrides.maxIterations !== undefined) job.maxIterations = overrides.maxIterations;
-  if (overrides.maxMinutes !== undefined) job.maxMinutes = overrides.maxMinutes;
-  if (overrides.maxCostUsd !== undefined) job.maxCostUsd = overrides.maxCostUsd;
-  if (overrides.checkTimeoutSeconds !== undefined) job.checkTimeoutSeconds = overrides.checkTimeoutSeconds;
-  if (overrides.commit !== undefined) job.commit = overrides.commit;
-  if (overrides.completionPromise !== undefined) job.completionPromise = overrides.completionPromise;
 }
 
 type CheckRecord = CheckResult & {

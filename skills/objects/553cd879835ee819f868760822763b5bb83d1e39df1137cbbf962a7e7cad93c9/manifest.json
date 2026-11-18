@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "snapshot": "553cd879835ee819f868760822763b5bb83d1e39df1137cbbf962a7e7cad93c9",
+  "files": [
+    { "path": ".upstream/LICENSE", "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5", "executable": 0 },
+    { "path": "SKILL.md", "sha256": "849198df88cdb65fd0d97236604c1fca7ff2f22d2f705f9724a800d0266b118d", "executable": 0 },
+    { "path": "agents/openai.yaml", "sha256": "3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b", "executable": 0 },
+    {
+      "path": "scripts/hitl-loop.template.sh",
+      "sha256": "35103539fc36873eea36074769ad454f9379d6fc8b2dc0e26ce987fd3bfe5503",
+      "executable": 0
+    }
+  ]
+}

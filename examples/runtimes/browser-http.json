@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "mcp": {
+    "browser": {
+      "transport": "http",
+      "url": "http://127.0.0.1:8319/mcp"
+    }
+  }
+}

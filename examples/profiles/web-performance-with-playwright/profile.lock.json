@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "skills": {
+    "builtin:web-performance": {
+      "source": {
+        "source": "https://github.com/addyosmani/web-quality-skills",
+        "path": "skills/performance",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "afa8da942115f2961fdbfa80807ea0b232ff6c00"
+      },
+      "scope": "builtin",
+      "snapshot": "4aae51d9c149d3f6ce3af50486073429192bcba983ca24f3995765ae1eaf19a4",
+      "importedAt": "2026-10-20T09:41:57.195Z",
+      "use": "builtin:web-performance"
+    },
+    "builtin:playwright-cli": {
+      "source": {
+        "source": "https://github.com/microsoft/playwright-cli",
+        "path": "skills/playwright-cli",
+        "ref": "main",
+        "autoUpdate": false,
+        "kind": "github",
+        "commit": "b1a5903c5b633b8c9f843ad7b629c2a78437040c"
+      },
+      "scope": "builtin",
+      "snapshot": "6d6dcedf3fd075655d0d6874191d0b77a20daf6bd00ea4e54043bdc022324243",
+      "importedAt": "2026-10-20T10:59:11.726Z",
+      "use": "builtin:playwright-cli"
+    }
+  }
+}

@@ -19,6 +19,25 @@ const job: RalphJob = {
   checks: [],
 };
 
+test("PiProcessRunner preserves the absolute deadline across worker IPC", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-worker-budget-"));
+  const workerPath = join(cwd, "worker.cjs");
+  await writeFile(
+    workerPath,
+    'process.on("message", input => process.send({result:{status:"continue",summary:String(input.deadline)}}, () => process.exit(0)));',
+  );
+  const deadline = Date.now() + 120_000;
+  const result = await new PiProcessRunner({ workerPath }).runIteration({
+    job,
+    iteration: 1,
+    cwd,
+    progress: "",
+    deadline,
+    signal: new AbortController().signal,
+  });
+  assert.equal(result.summary, String(deadline));
+});
+
 test("PiProcessRunner returns a worker result after the process exits", async () => {
   const cwd = await mkdtemp(join(tmpdir(), "ralphworks-worker-"));
   const workerPath = join(cwd, "worker.cjs");

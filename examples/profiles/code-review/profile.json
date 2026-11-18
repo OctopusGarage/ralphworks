@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "code-review",
+  "description": "Review a specified change and produce actionable findings.",
+  "prompts": ["method.md"],
+  "parameters": {
+    "scope": "the changes described in the task"
+  },
+  "defaults": {
+    "maxIterations": 3,
+    "maxMinutes": 20
+  },
+  "artifacts": ["REVIEW.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "REVIEW.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

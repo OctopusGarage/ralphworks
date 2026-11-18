@@ -6,6 +6,26 @@ import test from "node:test";
 import { parseJob } from "../src/job.ts";
 import { runLocalJob } from "../src/orchestrator.ts";
 
+test("runLocalJob gives the worker the enforced absolute run deadline", async () => {
+  const cwd = await mkdtemp(join(tmpdir(), "ralphworks-deadline-"));
+  const path = join(cwd, "job.yaml");
+  await writeFile(path, "name: budget\ntask: Finish one change.\nmax_iterations: 1\nmax_minutes: 0.5\n");
+  const before = Date.now();
+  let deadline: number | undefined;
+  await runLocalJob(path, {
+    cwd,
+    runner: {
+      async runIteration(input) {
+        deadline = input.deadline;
+        return { status: "continue", summary: "One increment finished" };
+      },
+    },
+  });
+  assert.ok(deadline !== undefined);
+  assert.ok(deadline >= before + 30_000);
+  assert.ok(deadline <= Date.now() + 30_000);
+});
+
 test("runLocalJob creates Ralph state and records dry-run iterations", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "ralphworks-"));
   const jobPath = join(workspace, "job.yaml");

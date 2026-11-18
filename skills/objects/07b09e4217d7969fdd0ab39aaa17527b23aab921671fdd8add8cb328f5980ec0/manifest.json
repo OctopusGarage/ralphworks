@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "snapshot": "07b09e4217d7969fdd0ab39aaa17527b23aab921671fdd8add8cb328f5980ec0",
+  "files": [
+    {
+      "path": ".upstream/LICENSE",
+      "sha256": "96e78a9ce85795b117c8929887bdb78f88bf23f7b85a31f0872cde4dff7e92cd",
+      "executable": 0
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "ec5fc8855cb4648b4f2c79b608f8c8824a2da6a683330524c4d6283e4a3954c4",
+      "executable": 0
+    }
+  ]
+}

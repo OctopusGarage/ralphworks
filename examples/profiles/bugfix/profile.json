@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "name": "bugfix",
+  "description": "Diagnose a reproducible defect, repair it, and verify the behavior.",
+  "prompts": ["method.md"],
+  "skills": ["skills/debugging"],
+  "parameters": {
+    "target": null
+  },
+  "defaults": {
+    "maxIterations": 6,
+    "maxMinutes": 30
+  },
+  "artifacts": ["BUGFIX_REPORT.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "bash", "edit", "write", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {},
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": [
+    {
+      "path": "BUGFIX_REPORT.md",
+      "format": "text",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "github-frontend",
+  "description": "Build frontend features using an explicitly selected GitHub skill",
+  "extends": ["../coding"],
+  "skills": [
+    {
+      "source": "https://github.com/anthropics/skills",
+      "path": "skills/frontend-design",
+      "ref": "main",
+      "autoUpdate": false
+    }
+  ]
+}

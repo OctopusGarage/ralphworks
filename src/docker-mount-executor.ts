@@ -1,9 +1,12 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
 import { type RunCommand, runDockerContainer } from "./docker-command.ts";
-import { checksEnv, jobOptionsEnv, modelEnv, piAgentEnv, piAgentMount, providerEnv } from "./docker-env.ts";
+import { checksEnv, jobOptionsEnv, mcpCredentialNames, mcpEnv, modelEnv, piAgentEnv, piAgentMount, providerEnv } from "./docker-env.ts";
+import type { McpBindings } from "./mcp-config.ts";
+import { type ResolvedTask, remapTaskPaths } from "./resolved-task.ts";
 import type { JobOverrides, ModelRef } from "./run-args.ts";
 
 export type DockerMountResult = {
@@ -20,6 +23,7 @@ export type DockerMountOptions = {
   modelRef?: ModelRef;
   piAgentDir?: string;
   passEnv?: string[];
+  mcpBindings?: McpBindings;
   checks?: string[];
   contexts?: string[];
   jobOverrides?: JobOverrides;
@@ -27,17 +31,28 @@ export type DockerMountOptions = {
   image?: string;
   runCommand?: RunCommand;
   totalMinutes?: number;
+  preparedTask?: ResolvedTask;
 };
 
 export async function runDockerMountJob(options: DockerMountOptions): Promise<DockerMountResult> {
-  const result = await runDockerContainer(dockerMountArgs(options), options.totalMinutes, options.runCommand);
+  let preparedPath: string | undefined;
+  if (options.preparedTask) {
+    const relativePath = `.ralph/inputs/${randomUUID()}.json`;
+    preparedPath = `/workspace/${relativePath}`;
+    await mkdir(join(options.cwd, ".ralph", "inputs"), { recursive: true });
+    await writeFile(
+      join(options.cwd, relativePath),
+      JSON.stringify(remapTaskPaths(options.preparedTask, [[options.cwd, "/workspace"]])) + "\n",
+    );
+  }
+  const result = await runDockerContainer(dockerMountArgs(options, preparedPath), options.totalMinutes, options.runCommand);
   return {
     status: result.timedOut ? "timed_out" : result.exitCode === 0 ? "completed" : "failed",
     ...result,
   };
 }
 
-function dockerMountArgs(options: DockerMountOptions): string[] {
+function dockerMountArgs(options: DockerMountOptions, preparedPath?: string): string[] {
   return [
     "run",
     "--rm",
@@ -57,11 +72,17 @@ function dockerMountArgs(options: DockerMountOptions): string[] {
     `RALPH_RUNNER=${options.runner}`,
     "-e",
     "RALPHWORKS_UNATTENDED=1",
+    ...(preparedPath ? ["-e", `RALPHWORKS_PREPARED_TASK=${preparedPath}`] : []),
+    ...mcpEnv(options.mcpBindings),
     ...modelEnv(options.modelRef),
     ...checksEnv(options.checks),
     ...jobOptionsEnv(options.contexts, options.jobOverrides),
     ...piAgentEnv(options.piAgentDir),
-    ...providerEnv(options.env ?? process.env, options.passEnv),
+    ...providerEnv(options.env ?? process.env, [
+      ...(options.passEnv ?? []),
+      ...mcpCredentialNames(options.mcpBindings),
+      ...(options.preparedTask?.environment?.requires.env ?? []),
+    ]),
     options.image ?? "ralphworks-sandbox:latest",
     "-c",
     dockerMountScript(),
@@ -100,7 +121,7 @@ function dockerMountScript(): string {
     "elif [ -f package.json ]; then",
     "  npm install",
     "fi",
-    'ralphworks run "$RALPH_JOB" --runner "$RALPH_RUNNER" --executor host',
+    'ralphworks run "$RALPH_JOB" --runner "$RALPH_RUNNER" --executor host --workspace current',
     "'",
   ].join("\n");
 }

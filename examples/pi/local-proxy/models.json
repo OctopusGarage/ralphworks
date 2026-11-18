@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "local-proxy": {
+      "baseUrl": "http://127.0.0.1:8317/v1",
+      "api": "openai-completions",
+      "apiKey": "$LOCAL_MODEL_API_KEY",
+      "models": [{ "id": "REPLACE_WITH_YOUR_MODEL_ID" }]
+    }
+  }
+}

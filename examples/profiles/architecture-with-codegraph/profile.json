@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "architecture-with-codegraph",
+  "description": "Architecture with codegraph",
+  "extends": ["builtin:architecture"],
+  "prompts": ["prompt.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "mcp": {
+      "graph": {
+        "tools": ["codegraph_explore"],
+        "required": false,
+        "timeoutSeconds": 30
+      }
+    }
+  }
+}

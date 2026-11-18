@@ -85,7 +85,7 @@ export const ISSUE_WORKFLOW = [
   '            export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"',
   "          fi",
   "          set +e",
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/issue-task.md" --executor host --check "$RALPHWORKS_CHECK" --max-iterations 5 --max-minutes 30 --max-cost-usd 3',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/issue-task.md" --executor host --check "$RALPHWORKS_CHECK" --max-iterations 5 --max-minutes 30 --max-cost-usd 3 --workspace current',
   "          status=$?",
   "          set -e",
   '          echo "exit_code=$status" >> "$GITHUB_OUTPUT"',

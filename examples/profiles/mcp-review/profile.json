@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "mcp-review",
+  "description": "Review a change with documentation provided by a runtime-bound MCP service.",
+  "extends": ["builtin:code-review"],
+  "prompts": ["method.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "tools": ["read", "grep", "find", "ls"],
+    "extensions": [],
+    "contextFiles": [],
+    "mcp": {
+      "docs": {
+        "tools": ["lookup"],
+        "required": true,
+        "timeoutSeconds": 30
+      }
+    },
+    "requires": {
+      "commands": [],
+      "env": []
+    }
+  },
+  "outputs": []
+}

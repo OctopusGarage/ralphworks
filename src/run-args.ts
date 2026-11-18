@@ -1,3 +1,5 @@
+import { type McpBindings, parseMcpBindings } from "./mcp-config.ts";
+
 type RunnerName = "dry-run" | "pi";
 type ExecutorName = "host" | "docker" | "docker-clone";
 export type ModelRef = {
@@ -16,6 +18,9 @@ export type JobOverrides = {
 
 type RunArgEnv = {
   PI_CODING_AGENT_DIR?: string;
+  RALPHWORKS_PROFILE?: string;
+  RALPHWORKS_MCP_BINDINGS_JSON?: string;
+  RALPHWORKS_PARAMS_JSON?: string;
   RALPHWORKS_PROVIDER?: string;
   RALPHWORKS_MODEL?: string;
   RALPHWORKS_PASS_ENV?: string;
@@ -25,6 +30,7 @@ type RunArgEnv = {
 };
 
 export type RunArgs = {
+  help?: true;
   runner: RunnerName;
   executor: ExecutorName;
   repo?: string;
@@ -36,13 +42,47 @@ export type RunArgs = {
   contexts?: string[];
   jobOverrides?: JobOverrides;
   totalMinutes?: number;
+  profile?: string;
+  mcpBindings?: McpBindings;
+  runtime?: string;
+  params?: Record<string, string>;
+  workspace?: "current" | "worktree";
+  worktreePath?: string;
+  keepWorktree?: boolean;
+  stateDir?: string;
+  resultFile?: string;
+  invocationId?: string;
 };
 
-export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunArgs | Error {
+export function parseRunArgs(args: string[], env: RunArgEnv = process.env, options: { allowHelp?: boolean } = {}): RunArgs | Error {
   const out: RunArgs = {
     runner: "pi",
     executor: "host",
   };
+  if (env.RALPHWORKS_MCP_BINDINGS_JSON) {
+    try {
+      out.mcpBindings = parseMcpBindings(JSON.parse(env.RALPHWORKS_MCP_BINDINGS_JSON), process.cwd());
+    } catch (error) {
+      return new Error(`Invalid RALPHWORKS_MCP_BINDINGS_JSON: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (env.RALPHWORKS_PROFILE) out.profile = env.RALPHWORKS_PROFILE;
+  if (env.RALPHWORKS_PARAMS_JSON) {
+    try {
+      const params: unknown = JSON.parse(env.RALPHWORKS_PARAMS_JSON);
+      if (
+        !params ||
+        typeof params !== "object" ||
+        Array.isArray(params) ||
+        !Object.entries(params).every(([key, value]) => /^[A-Za-z][A-Za-z0-9_]*$/.test(key) && typeof value === "string")
+      )
+        return new Error("RALPHWORKS_PARAMS_JSON must be a JSON object of string parameters");
+      out.params = params as Record<string, string>;
+    } catch {
+      return new Error("RALPHWORKS_PARAMS_JSON must be a JSON object of string parameters");
+    }
+  }
+  const cliParams = new Set<string>();
   let provider = env.RALPHWORKS_PROVIDER;
   let model = env.RALPHWORKS_MODEL;
   let piAgentDir = env.PI_CODING_AGENT_DIR;
@@ -68,6 +108,53 @@ export function parseRunArgs(args: string[], env: RunArgEnv = process.env): RunA
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+    if (options.allowHelp && (arg === "-h" || arg === "--help")) return { ...out, help: true };
+    if (arg === "--keep-worktree") {
+      if (out.keepWorktree) return new Error("Duplicate option: --keep-worktree");
+      out.keepWorktree = true;
+      continue;
+    }
+    if (arg === "--state-dir") {
+      const value = args[index + 1];
+      if (!value?.trim() || value.startsWith("--")) return new Error("--state-dir requires a path value");
+      if (out.stateDir !== undefined) return new Error("Duplicate option: --state-dir");
+      out.stateDir = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--result-file" || arg === "--invocation-id") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) return new Error(`${arg} requires a value`);
+      const key = arg === "--result-file" ? "resultFile" : "invocationId";
+      if (out[key] !== undefined) return new Error(`Duplicate receipt option: ${arg}`);
+      if (key === "invocationId" && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value))
+        return new Error("--invocation-id must contain 1–128 ASCII letters, digits, underscores or hyphens");
+      out[key] = value;
+      index += 1;
+      continue;
+    }
+    if (["--profile", "--runtime", "--workspace", "--worktree-path", "--param"].includes(arg)) {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) return new Error(`${arg} requires a value`);
+      if (arg === "--profile") out.profile = value;
+      if (arg === "--runtime") out.runtime = value;
+      if (arg === "--worktree-path") out.worktreePath = value;
+      if (arg === "--workspace") {
+        if (value !== "current" && value !== "worktree") return new Error("--workspace must be current or worktree");
+        out.workspace = value;
+      }
+      if (arg === "--param") {
+        const equal = value.indexOf("=");
+        const key = value.slice(0, equal);
+        if (equal < 1 || !/^[A-Za-z][A-Za-z0-9_]*$/.test(key)) return new Error("--param requires key=value");
+        out.params ??= {};
+        if (cliParams.has(key)) return new Error(`Duplicate parameter: ${key}`);
+        cliParams.add(key);
+        Object.defineProperty(out.params, key, { value: value.slice(equal + 1), enumerable: true, configurable: true });
+      }
+      index += 1;
+      continue;
+    }
     if (arg === "--runner") {
       const value = args[index + 1];
       if (value !== "dry-run" && value !== "pi") {
@@ -259,9 +346,17 @@ function jsonJobOverrides(value: string | undefined): JobOverrides | Error {
   if (!value) return {};
   try {
     const parsed: unknown = JSON.parse(value);
-    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
-      ? (parsed as JobOverrides)
-      : new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+      return new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
+    for (const [key, value] of Object.entries(parsed)) {
+      if (key === "commit" && (value === "none" || value === "verified")) continue;
+      if (key === "completionPromise" && typeof value === "string" && value.trim()) continue;
+      if (key === "maxIterations" && typeof value === "number" && Number.isInteger(value) && value > 0) continue;
+      if (["maxMinutes", "maxCostUsd"].includes(key) && typeof value === "number" && Number.isFinite(value) && value >= 0) continue;
+      if (key === "checkTimeoutSeconds" && typeof value === "number" && Number.isFinite(value) && value > 0) continue;
+      return new Error(`Invalid job override: ${key}`);
+    }
+    return parsed as JobOverrides;
   } catch {
     return new Error("RALPHWORKS_JOB_OVERRIDES_JSON must be a JSON object");
   }

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "snapshot": "74deddffc1d216cd51f2076fa7d82f01044c54a42a33f2ae37227870b56d55a7",
+  "files": [
+    { "path": "SKILL.md", "sha256": "5330aef7557bbe8d08027bc7b751cad8787513813c58ce8f77226c25ed0f1f9e", "executable": 0 },
+    { "path": "references/evidence.md", "sha256": "8c4a3859237c24dc42b06407fab153a8b29a21b7c04557497764bf3017f275a9", "executable": 0 }
+  ]
+}

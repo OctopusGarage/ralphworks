@@ -1,8 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-
 import { type RunCommand, runDockerContainer } from "./docker-command.ts";
-import { checksEnv, jobOptionsEnv, modelEnv, piAgentEnv, piAgentMount, providerEnv } from "./docker-env.ts";
+import { checksEnv, jobOptionsEnv, mcpCredentialNames, mcpEnv, modelEnv, piAgentEnv, piAgentMount, providerEnv } from "./docker-env.ts";
+import type { McpBindings } from "./mcp-config.ts";
 import type { JobOverrides, ModelRef } from "./run-args.ts";
 
 export type DockerCloneResult = {
@@ -21,6 +21,7 @@ export type DockerCloneOptions = {
   modelRef?: ModelRef;
   piAgentDir?: string;
   passEnv?: string[];
+  mcpBindings?: McpBindings;
   checks?: string[];
   contexts?: string[];
   jobOverrides?: JobOverrides;
@@ -29,6 +30,8 @@ export type DockerCloneOptions = {
   runCommand?: RunCommand;
   outputDir?: string;
   totalMinutes?: number;
+  profile?: string;
+  params?: Record<string, string>;
 };
 
 export async function runDockerCloneJob(options: DockerCloneOptions): Promise<DockerCloneResult> {
@@ -64,11 +67,14 @@ function dockerCloneArgs(options: DockerCloneOptions, outputDir: string): string
     "-e",
     "RALPHWORKS_UNATTENDED=1",
     ...((options.env ?? process.env).GH_TOKEN ? ["-e", "GH_TOKEN"] : []),
+    ...(options.profile ? ["-e", `RALPHWORKS_PROFILE=${options.profile}`] : []),
+    ...(options.params ? ["-e", `RALPHWORKS_PARAMS_JSON=${JSON.stringify(options.params)}`] : []),
+    ...mcpEnv(options.mcpBindings),
     ...modelEnv(options.modelRef),
     ...checksEnv(options.checks),
     ...jobOptionsEnv(options.contexts, options.jobOverrides),
     ...piAgentEnv(options.piAgentDir),
-    ...providerEnv(options.env ?? process.env, options.passEnv),
+    ...providerEnv(options.env ?? process.env, [...(options.passEnv ?? []), ...mcpCredentialNames(options.mcpBindings), ...[]]),
     options.image ?? "ralphworks-sandbox:latest",
     "-c",
     dockerCloneScript(),
@@ -104,12 +110,12 @@ function dockerCloneScript(): string {
     "  npm install",
     "fi",
     "set +e",
-    'ralphworks run "$RALPH_JOB" --runner "$RALPH_RUNNER" --executor host',
+    'ralphworks run "$RALPH_JOB" --runner "$RALPH_RUNNER" --executor host --workspace current',
     "RALPH_EXIT=$?",
     "set -e",
     "git add -N --all",
     'git diff --binary "$RALPH_BASE" -- . ":!.ralph" > /output/change.patch',
-    'if [ -f .ralph/current ]; then RALPH_RUN_DIR=$(cat .ralph/current); case "$RALPH_RUN_DIR" in /*) ;; *) RALPH_RUN_DIR=".ralph/$RALPH_RUN_DIR";; esac; cp "$RALPH_RUN_DIR/result.json" /output/result.json; cp "$RALPH_RUN_DIR/events.jsonl" /output/events.jsonl; fi',
+    'if [ -f .ralph/current ]; then RALPH_RUN_DIR=$(cat .ralph/current); case "$RALPH_RUN_DIR" in /*) ;; *) RALPH_RUN_DIR=".ralph/$RALPH_RUN_DIR";; esac; cp "$RALPH_RUN_DIR/result.json" /output/result.json; cp "$RALPH_RUN_DIR/events.jsonl" /output/events.jsonl; cp "$RALPH_RUN_DIR/task.json" /output/task.json; for inventory in "$RALPH_RUN_DIR"/environment-*.json; do if [ -f "$inventory" ]; then cp "$inventory" /output/; fi; done; fi',
     'exit "$RALPH_EXIT"',
     "RALPHWORKS_SCRIPT",
   ].join("\n");

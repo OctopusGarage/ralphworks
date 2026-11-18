@@ -93,7 +93,7 @@ export const PRD_IMPLEMENT_WORKFLOW = [
   "        run: |",
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"; fi',
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/prd-task.md" --executor host --check "$RALPHWORKS_CHECK" --max-iterations 5 --max-minutes 30 --max-cost-usd 3',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/prd-task.md" --executor host --check "$RALPHWORKS_CHECK" --max-iterations 5 --max-minutes 30 --max-cost-usd 3 --workspace current',
   "      - name: Export patch",
   "        if: always() && steps.ralph.outcome != 'skipped'",
   "        run: |",

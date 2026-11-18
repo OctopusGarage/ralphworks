@@ -82,7 +82,7 @@ export const ARCHITECTURE_WORKFLOW = [
   "          set -euo pipefail",
   '          if [ -n "$RALPHWORKS_AUTH_SECRET_NAME" ]; then export "$RALPHWORKS_AUTH_SECRET_NAME=$RALPHWORKS_AUTH_SECRET_VALUE"; fi',
   '          if [ -n "$RALPHWORKS_ARCHITECTURE_SKILL_REF" ]; then check="test -s .ralph/architecture.md && test -s .ralph/architecture.html"; else check="test -s .ralph/architecture.md"; fi',
-  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/architecture-task.md" --executor host --check "$check" --max-iterations 3 --max-minutes 20 --max-cost-usd 1',
+  '          node "$RUNNER_TEMP/ralphworks/dist/cli.js" run "$RUNNER_TEMP/architecture-task.md" --executor host --check "$check" --max-iterations 3 --max-minutes 20 --max-cost-usd 1 --workspace current',
   "      - uses: actions/upload-artifact@v4",
   "        if: always() && steps.ralph.outcome != 'skipped'",
   "        with:",

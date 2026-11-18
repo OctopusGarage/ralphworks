@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "mcp": {
+    "docs": {
+      "transport": "http",
+      "url": "http://127.0.0.1:8318/mcp",
+      "headers": {
+        "Authorization": "DOCS_AUTHORIZATION"
+      }
+    }
+  }
+}

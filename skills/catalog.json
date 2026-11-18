@@ -1,0 +1,442 @@
+{
+  "version": 1,
+  "entries": {
+    "bugfix": {
+      "current": "666cdcf15a1e6143dcc6c47e77382987b5f8017982c40d96754fecdc62ee29ed",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "7d463ee3e0e5a2f31162a4746f86d8d028d059baa179bc7fdec00a27052b0822"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "666cdcf15a1e6143dcc6c47e77382987b5f8017982c40d96754fecdc62ee29ed"
+        }
+      ]
+    },
+    "code-review": {
+      "current": "0a4ee26d3fd1ee2614952d588594ee4cd11868ebc39c7930fefea7bf8f06f0b1",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "d3e4c522f72cbbe1fa4f885f7818d9eec141f57fe8ac9f6320f0dbc858c40631"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "0a4ee26d3fd1ee2614952d588594ee4cd11868ebc39c7930fefea7bf8f06f0b1"
+        }
+      ]
+    },
+    "coding": {
+      "current": "116f12f967f494607326b5b0404c09e50d9d3a12e41e2bb916a44cc708830d1b",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "097967623b631275086b6fa463fba5b93f3d03b3a1cba82f1a2e9e936637b616"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "116f12f967f494607326b5b0404c09e50d9d3a12e41e2bb916a44cc708830d1b"
+        }
+      ]
+    },
+    "docs-update": {
+      "current": "84e513db4cb6e607ef5ef2df8000477210e6c255d32e4c4e6fbbe00105f45205",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "e7bf557803de763173570cb214586ab9d718dae9a753b65c8e268c27ee329d74"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "84e513db4cb6e607ef5ef2df8000477210e6c255d32e4c4e6fbbe00105f45205"
+        }
+      ]
+    },
+    "architecture": {
+      "current": "4d37e13c098c969b0eedc7375e4e6a0008a0d25df35d10efef802df0439574f0",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "12e7db023ec54175cf73a73458dd27b62a5b768ae5697edc7e813aaff953ff0a"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "4d37e13c098c969b0eedc7375e4e6a0008a0d25df35d10efef802df0439574f0"
+        }
+      ]
+    },
+    "test-coverage": {
+      "current": "a5b073806f56d53fee65af950824143fe88b4e18a754464340ddaecc8c450a66",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "018250e0469ae32d31507f7fc87c3f49090d39bbe28d26a3b1dd365e7c3eb6c2"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "a5b073806f56d53fee65af950824143fe88b4e18a754464340ddaecc8c450a66"
+        }
+      ]
+    },
+    "security-maintenance": {
+      "current": "cb95e273c082e5f2bae6bb30b128f9396300fa04867b0918369e1add66a64abb",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "7497d6d0cccd7ddc1210d57ff3ddb0a94a843ada92eb491caa981e7351b295ea"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "cb95e273c082e5f2bae6bb30b128f9396300fa04867b0918369e1add66a64abb"
+        }
+      ]
+    },
+    "bug-hunt": {
+      "current": "a4fefaa54b982382a526a16370cd4ab7cbaafb4bb11a6c436b2a332a842da44e",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "1a5970c4e7830e1720693101337300d67da8aeec716210f12633fc311bd45e0d"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "a4fefaa54b982382a526a16370cd4ab7cbaafb4bb11a6c436b2a332a842da44e"
+        }
+      ]
+    },
+    "harness-auto": {
+      "current": "aa1e0962ee74dd8236d2eb8f605a0d9ae5c0e58ffed1b57aad232d0bc9ef0b80",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "614e8b6bca955f68990c89ed5af36078fed3658c57acd7446ff51ccdf9dc6f14"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "aa1e0962ee74dd8236d2eb8f605a0d9ae5c0e58ffed1b57aad232d0bc9ef0b80"
+        }
+      ]
+    },
+    "opportunity-discovery": {
+      "current": "16c675fdbf04b08e5dbef71f6bed7e97fb2f46713e8112e0c287db5a245e867d",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "cff7aea116ba52bcb8c010b4ef2d8d160a038ffdb07e940c6f2f1a98ae454b47"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "516815135cfafdec92384143cd1d0b8724f32bd2ee5196daa287065fa5548c27"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "16c675fdbf04b08e5dbef71f6bed7e97fb2f46713e8112e0c287db5a245e867d"
+        }
+      ]
+    },
+    "automation-governance-review": {
+      "current": "b5bbc8faf45915453e878bb4d49dc59de8c5fa638617484d43d38ba318d1922b",
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "5ff3f6963c9b5d8ab25d9ca9dd69e31ca2d2cc0429bffcd2eb2f0b73a5cd3e27"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "74deddffc1d216cd51f2076fa7d82f01044c54a42a33f2ae37227870b56d55a7"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "b5bbc8faf45915453e878bb4d49dc59de8c5fa638617484d43d38ba318d1922b"
+        }
+      ]
+    },
+    "accessibility": {
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "a55bb43ef20041244c96ad1cfe46d32e9786ee2a5f4a4c4ebe0d7a8d8724e69f"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "8888842edf376d3323bb0f85250d12143717ae5550a1f6f99a1acec71c2acf47"
+        }
+      ],
+      "current": "8888842edf376d3323bb0f85250d12143717ae5550a1f6f99a1acec71c2acf47"
+    },
+    "performance": {
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "bd17c0495b378afa8f430e5555bc3e723448a1c382d786da78ad76fdc36da407"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "0e91efee810bab928371ad41b9c99fa612a3fafe8df097cb28d96b3f1e17e1c5"
+        }
+      ],
+      "current": "0e91efee810bab928371ad41b9c99fa612a3fafe8df097cb28d96b3f1e17e1c5"
+    },
+    "ui-implementation": {
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "f4dec4fcbd432c20bc5c9fe1085f8ac070447eb3a625950a5ffa7572df2c230b"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "49dbc26bf7cb04310bec8321d02b4db7275e0a4f8f196a3f72b6d730f9812215"
+        }
+      ],
+      "current": "49dbc26bf7cb04310bec8321d02b4db7275e0a4f8f196a3f72b6d730f9812215"
+    },
+    "ux-review": {
+      "revisions": [
+        {
+          "scope": "builtin",
+          "snapshot": "85d862c5061696238b420e665a30e2910d558e70b9003dcbe49d56554ac333a7"
+        },
+        {
+          "scope": "builtin",
+          "snapshot": "84ba4d9590c828a67a4aa4a282bf56e5f776aa2eda62a418782413ef3d13500a"
+        }
+      ],
+      "current": "84ba4d9590c828a67a4aa4a282bf56e5f776aa2eda62a418782413ef3d13500a"
+    },
+    "anthropic-frontend-design": {
+      "current": "2df8544cbcb4af1e766327b26c989128195e3e8da20fa6fcf780ed53a319f981",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/anthropics/skills",
+            "path": "skills/frontend-design",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44"
+          },
+          "scope": "builtin",
+          "snapshot": "2df8544cbcb4af1e766327b26c989128195e3e8da20fa6fcf780ed53a319f981",
+          "importedAt": "2026-10-20T09:41:57.405Z",
+          "use": "builtin:anthropic-frontend-design"
+        }
+      ]
+    },
+    "sentry-code-review": {
+      "current": "07b09e4217d7969fdd0ab39aaa17527b23aab921671fdd8add8cb328f5980ec0",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/getsentry/skills",
+            "path": "skills/code-review",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "f57ada2d0b640406ea7e25b11d636c530e77c58b"
+          },
+          "scope": "builtin",
+          "snapshot": "07b09e4217d7969fdd0ab39aaa17527b23aab921671fdd8add8cb328f5980ec0",
+          "importedAt": "2026-10-20T09:41:57.020Z",
+          "use": "builtin:sentry-code-review"
+        }
+      ]
+    },
+    "mattpocock-codebase-design": {
+      "current": "9053baae04c550d02369b07fcdbb82038a017be0dfa2550de81d5b1ec023dce0",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/mattpocock/skills",
+            "path": "skills/engineering/codebase-design",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+          },
+          "scope": "builtin",
+          "snapshot": "9053baae04c550d02369b07fcdbb82038a017be0dfa2550de81d5b1ec023dce0",
+          "importedAt": "2026-10-20T09:41:56.998Z",
+          "use": "builtin:mattpocock-codebase-design"
+        }
+      ]
+    },
+    "web-accessibility": {
+      "current": "0538d84d7bca0e7ad4ed1c1cc141b163ebd4544753a33c00724fe9ddb4c8078b",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/addyosmani/web-quality-skills",
+            "path": "skills/accessibility",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "afa8da942115f2961fdbfa80807ea0b232ff6c00"
+          },
+          "scope": "builtin",
+          "snapshot": "0538d84d7bca0e7ad4ed1c1cc141b163ebd4544753a33c00724fe9ddb4c8078b",
+          "importedAt": "2026-10-20T09:41:56.974Z",
+          "use": "builtin:web-accessibility"
+        }
+      ]
+    },
+    "web-performance": {
+      "current": "4aae51d9c149d3f6ce3af50486073429192bcba983ca24f3995765ae1eaf19a4",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/addyosmani/web-quality-skills",
+            "path": "skills/performance",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "afa8da942115f2961fdbfa80807ea0b232ff6c00"
+          },
+          "scope": "builtin",
+          "snapshot": "4aae51d9c149d3f6ce3af50486073429192bcba983ca24f3995765ae1eaf19a4",
+          "importedAt": "2026-10-20T09:41:57.195Z",
+          "use": "builtin:web-performance"
+        }
+      ]
+    },
+    "playwright-cli": {
+      "current": "6d6dcedf3fd075655d0d6874191d0b77a20daf6bd00ea4e54043bdc022324243",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/microsoft/playwright-cli",
+            "path": "skills/playwright-cli",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "b1a5903c5b633b8c9f843ad7b629c2a78437040c"
+          },
+          "scope": "builtin",
+          "snapshot": "6d6dcedf3fd075655d0d6874191d0b77a20daf6bd00ea4e54043bdc022324243",
+          "importedAt": "2026-10-20T10:59:11.726Z",
+          "use": "builtin:playwright-cli"
+        }
+      ]
+    },
+    "mattpocock-diagnosing-bugs": {
+      "current": "553cd879835ee819f868760822763b5bb83d1e39df1137cbbf962a7e7cad93c9",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/mattpocock/skills",
+            "path": "skills/engineering/diagnosing-bugs",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+          },
+          "scope": "builtin",
+          "snapshot": "553cd879835ee819f868760822763b5bb83d1e39df1137cbbf962a7e7cad93c9",
+          "importedAt": "2026-10-20T10:59:11.322Z",
+          "use": "builtin:mattpocock-diagnosing-bugs"
+        }
+      ]
+    },
+    "mattpocock-domain-modeling": {
+      "current": "fc81ee592f0966078c414f5006ff4aa673b4f8b7e113237bd0c992d6211fa86d",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/mattpocock/skills",
+            "path": "skills/engineering/domain-modeling",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+          },
+          "scope": "builtin",
+          "snapshot": "fc81ee592f0966078c414f5006ff4aa673b4f8b7e113237bd0c992d6211fa86d",
+          "importedAt": "2026-10-20T10:59:11.698Z",
+          "use": "builtin:mattpocock-domain-modeling"
+        }
+      ]
+    },
+    "brooks-test": {
+      "current": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+      "revisions": [
+        {
+          "entrypoint": "brooks-test/SKILL.md",
+          "source": {
+            "entrypoint": "brooks-test/SKILL.md",
+            "source": "https://github.com/hyhmrright/brooks-lint",
+            "path": "skills",
+            "ref": "main",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "917ea82286e74569817875e6a9da8bdf95030c3f"
+          },
+          "scope": "builtin",
+          "snapshot": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+          "importedAt": "2026-10-20T11:01:56.407Z",
+          "use": "builtin:brooks-test"
+        }
+      ]
+    },
+    "brooks-audit": {
+      "current": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+      "revisions": [
+        {
+          "entrypoint": "brooks-audit/SKILL.md",
+          "source": {
+            "entrypoint": "brooks-audit/SKILL.md",
+            "source": "https://github.com/hyhmrright/brooks-lint",
+            "path": "skills",
+            "ref": "917ea82286e74569817875e6a9da8bdf95030c3f",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "917ea82286e74569817875e6a9da8bdf95030c3f"
+          },
+          "scope": "builtin",
+          "snapshot": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+          "importedAt": "2026-10-20T11:01:57.923Z",
+          "use": "builtin:brooks-audit"
+        }
+      ]
+    },
+    "brooks-debt": {
+      "current": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+      "revisions": [
+        {
+          "entrypoint": "brooks-debt/SKILL.md",
+          "source": {
+            "entrypoint": "brooks-debt/SKILL.md",
+            "source": "https://github.com/hyhmrright/brooks-lint",
+            "path": "skills",
+            "ref": "917ea82286e74569817875e6a9da8bdf95030c3f",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "917ea82286e74569817875e6a9da8bdf95030c3f"
+          },
+          "scope": "builtin",
+          "snapshot": "7a407205b985773f1fde9cf43eb251a3c8bb0b39ab159120b18b2f602e6c439a",
+          "importedAt": "2026-10-20T11:01:59.327Z",
+          "use": "builtin:brooks-debt"
+        }
+      ]
+    },
+    "mattpocock-improve-codebase-architecture": {
+      "current": "adbf9c1bfc35459473b615e1c8494a333a8fd413d044f90c35d55a3b54ee6956",
+      "revisions": [
+        {
+          "source": {
+            "source": "https://github.com/mattpocock/skills",
+            "path": "skills/engineering/improve-codebase-architecture",
+            "ref": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+            "autoUpdate": false,
+            "kind": "github",
+            "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
+          },
+          "scope": "builtin",
+          "snapshot": "adbf9c1bfc35459473b615e1c8494a333a8fd413d044f90c35d55a3b54ee6956",
+          "importedAt": "2026-10-20T11:51:12.063Z",
+          "use": "builtin:mattpocock-improve-codebase-architecture"
+        }
+      ]
+    }
+  }
+}

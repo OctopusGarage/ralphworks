@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "bugfix-with-docs",
+  "description": "Bugfix with docs",
+  "extends": ["builtin:bugfix"],
+  "prompts": ["prompt.md"],
+  "environment": {
+    "resourceInheritance": "none",
+    "mcp": {
+      "docs": {
+        "tools": ["resolve-library-id", "query-docs"],
+        "required": false,
+        "timeoutSeconds": 30
+      }
+    }
+  }
+}

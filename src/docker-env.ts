@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import type { McpBindings } from "./mcp-config.ts";
 
 import type { JobOverrides, ModelRef } from "./run-args.ts";
 
@@ -99,4 +100,17 @@ function expandHome(path: string): string {
     return resolve(homedir(), path.slice(2));
   }
   return path;
+}
+
+export function mcpEnv(bindings: McpBindings | undefined): string[] {
+  return bindings && Object.keys(bindings).length ? ["-e", `RALPHWORKS_MCP_BINDINGS_JSON=${JSON.stringify(bindings)}`] : [];
+}
+export function mcpCredentialNames(bindings: McpBindings | undefined): string[] {
+  return [
+    ...new Set(
+      Object.values(bindings ?? {}).flatMap((binding) =>
+        Object.values(binding.transport === "stdio" ? (binding.env ?? {}) : (binding.headers ?? {})),
+      ),
+    ),
+  ];
 }

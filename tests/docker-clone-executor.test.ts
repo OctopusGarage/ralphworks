@@ -71,3 +71,26 @@ test("runDockerCloneJob runs a container that clones the target GitHub repo", as
   assert.match(calls[0].args.at(-1) ?? "", /result\.json/);
   assert.match(calls[0].args.at(-1) ?? "", /RALPH_RUN_DIR="\.ralph\/\$RALPH_RUN_DIR"/);
 });
+
+test("clone execution forwards repository profile selection and exports resolved task provenance", async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), "ralphworks-clone-profile-"));
+  let args: string[] = [];
+  await runDockerCloneJob({
+    jobPath: "job.yaml",
+    repo: "acme/project",
+    ref: "main",
+    runner: "dry-run",
+    profile: "review",
+    params: { scope: "api" },
+    outputDir,
+    runCommand: async (_file, value) => {
+      args = value;
+      return { exitCode: 0, stdout: "", stderr: "" };
+    },
+  });
+  assert.ok(args.includes("RALPHWORKS_PROFILE=review"));
+  assert.ok(args.includes('RALPHWORKS_PARAMS_JSON={"scope":"api"}'));
+  assert.match(args.at(-1) ?? "", /task\.json/);
+  assert.match(args.at(-1) ?? "", /environment-\*\.json/);
+  assert.match(args.at(-1) ?? "", /--workspace current/);
+});
