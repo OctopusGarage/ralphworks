@@ -69,7 +69,7 @@ test("explicit runtime retry settings preserve resource isolation and project pr
   const agentDir = join(root, "global");
   await mkdir(join(cwd, ".pi", "extensions"), { recursive: true });
   await mkdir(join(agentDir, "extensions"), { recursive: true });
-  const retry = { enabled: true, maxRetries: 2, baseDelayMs: 60000 };
+  const retry = { enabled: true, maxRetries: 2, baseDelayMs: 60000, maxAgentDelayMs: 90000 };
   const globalSettings = `${JSON.stringify({ defaultModel: "runtime-model", retry }, null, 2)}\n`;
   const projectSettings = `${JSON.stringify({ retry: { maxRetries: 1 } }, null, 2)}\n`;
   await writeFile(join(agentDir, "settings.json"), globalSettings);
@@ -136,7 +136,7 @@ for (const resourceInheritance of ["none", "project"] as const) {
     t.after(() => rm(root, { recursive: true, force: true }));
     const agentDir = join(root, "agent");
     await mkdir(agentDir);
-    const retry = { enabled: false, maxRetries: 0, baseDelayMs: 0 };
+    const retry = { enabled: false, maxRetries: 0, baseDelayMs: 0, maxAgentDelayMs: 0 };
     const settings = `${JSON.stringify({ retry })}\n`;
     await writeFile(join(agentDir, "settings.json"), settings);
     const loader = await createProfileResourceLoader({
@@ -161,7 +161,7 @@ test("without an explicit runtime directory ambient retry stays excluded from no
   const agentDir = join(root, "ambient");
   await mkdir(join(cwd, ".pi"), { recursive: true });
   await mkdir(agentDir);
-  const retry = { enabled: false, maxRetries: 9, baseDelayMs: 40000 };
+  const retry = { enabled: false, maxRetries: 9, baseDelayMs: 40000, maxAgentDelayMs: 90000 };
   const globalSettings = `${JSON.stringify({ defaultModel: "ambient-model", retry })}\n`;
   const projectSettings = `${JSON.stringify({ retry: { maxRetries: 1 } })}\n`;
   await writeFile(join(agentDir, "settings.json"), globalSettings);
@@ -187,8 +187,8 @@ test("without an explicit runtime directory ambient retry stays excluded from no
   );
   assert.equal(result.agentDir, agentDir);
   assert.deepEqual(result.settings, {
-    none: { retry: { enabled: true, maxRetries: 3, baseDelayMs: 2000 }, model: "ambient-model" },
-    project: { retry: { enabled: true, maxRetries: 1, baseDelayMs: 2000 }, model: "ambient-model" },
+    none: { retry: { enabled: true, maxRetries: 3, baseDelayMs: 2000, maxAgentDelayMs: 60000 }, model: "ambient-model" },
+    project: { retry: { enabled: true, maxRetries: 1, baseDelayMs: 2000, maxAgentDelayMs: 60000 }, model: "ambient-model" },
     all: { retry: { ...retry, maxRetries: 1 }, model: "ambient-model" },
   });
   assert.equal(await readFile(join(agentDir, "settings.json"), "utf8"), globalSettings);
