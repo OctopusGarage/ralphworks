@@ -30,6 +30,9 @@ Without a global link, replace `ralphworks` with `node /path/to/ralphworks/dist/
 
 Source installs pin Pi's `minimatch` dependency to 11.0.1 for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). Pi's resource filters use the retained `minimatch()` API; the removed regular-expression APIs are not used. Package-manager overrides belong to the installation root: when installing the tarball into a managed prefix, carry the repository's scoped overrides into that prefix and audit its own lockfile. Overrides inside an installed dependency do not protect a separate global or prefix installation.
 
+Source verification also applies a [documented picomatch security patch](../patches/README.md). Use `pnpm test:security` and `pnpm run audit` to verify installed patch integrity and bounded regression probes before recognizing the exact advisory as locally remediated. Raw registry findings remain visible; other findings and unavailable audit results still block.
+
+
 Use `--help` or `-h` as the command or immediate subcommand target to print usage and exit successfully, including `ralphworks run --help` and `ralphworks plan --help`. For `run` and `plan`, help is also recognized at an option position after the task. Other command argument parsers retain their existing strict validation; `remote task.md -h` is rejected before dispatch. Help exits before resolving tasks, profiles, runtimes or workspaces; it does not start an agent or create run state or worktrees. Values consumed by other options remain literal: `--completion-promise --help` sets the completion promise rather than requesting help. Existing argument validation still applies before a later help option. A bare `--` remains unsupported; `--` consumed as an option value remains literal.
 
 ```bash

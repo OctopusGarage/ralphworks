@@ -7,6 +7,13 @@ settings:
 overrides:
   '@earendil-works/pi-coding-agent>minimatch': 11.0.1
   '@earendil-works/pi-coding-agent>undici': 8.12.2
+  hono: 4.13.16
+  '@hono/node-server': 2.1.6
+
+patchedDependencies:
+  picomatch@4.0.7:
+    hash: f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc
+    path: patches/picomatch@4.0.7.patch
 
 importers:
 
@@ -400,11 +407,11 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@hono/node-server@2.1.5':
-    resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
+  '@hono/node-server@2.1.6':
+    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: ^4 || ^5.0.0-0
+      hono: 4.13.16
 
   '@isaacs/nonrecursive-glob-match@1.1.0':
     resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
@@ -1052,8 +1059,8 @@ packages:
   highlight.js@10.7.3:
     resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
 
-  hono@4.13.13:
-    resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
+  hono@4.13.16:
+    resolution: {integrity: sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@9.0.3:
@@ -1890,9 +1897,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@hono/node-server@2.1.5(hono@4.13.13)':
+  '@hono/node-server@2.1.6(hono@4.13.16)':
     dependencies:
-      hono: 4.13.13
+      hono: 4.13.16
 
   '@isaacs/nonrecursive-glob-match@1.1.0': {}
 
@@ -1942,7 +1949,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.32.1(zod@4.6.7)':
     dependencies:
-      '@hono/node-server': 2.1.5(hono@4.13.13)
+      '@hono/node-server': 2.1.6(hono@4.13.16)
       ajv: 8.20.0
       ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
@@ -1952,7 +1959,7 @@ snapshots:
       eventsource-parser: 3.1.1
       express: 5.3.0
       express-rate-limit: 8.7.1(express@5.3.0)
-      hono: 4.13.13
+      hono: 4.13.16
       jose: 6.2.13
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -2382,9 +2389,9 @@ snapshots:
     dependencies:
       walk-up-path: 4.0.0
 
-  fdir@6.5.0(picomatch@4.0.7):
+  fdir@6.5.0(picomatch@4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc)):
     optionalDependencies:
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc)
 
   fetch-blob@3.2.0:
     dependencies:
@@ -2484,7 +2491,7 @@ snapshots:
 
   highlight.js@10.7.3: {}
 
-  hono@4.13.13: {}
+  hono@4.13.16: {}
 
   hosted-git-info@9.0.3:
     dependencies:
@@ -2560,13 +2567,13 @@ snapshots:
 
   knip@6.37.0:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.7)
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc))
       formatly: 0.7.1
       get-tsconfig: 4.14.3
       jiti: 2.7.0
       oxc-parser: 0.150.0
       oxc-resolver: 11.24.2
-      picomatch: 4.0.7
+      picomatch: 4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc)
       smol-toml: 1.9.1
       strip-json-comments: 5.0.3
       tinyglobby: 0.2.17
@@ -2689,7 +2696,7 @@ snapshots:
 
   path-to-regexp@8.4.2: {}
 
-  picomatch@4.0.7: {}
+  picomatch@4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc): {}
 
   pkce-challenge@5.0.1: {}
 
@@ -2832,8 +2839,8 @@ snapshots:
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.7)
-      picomatch: 4.0.7
+      fdir: 6.5.0(picomatch@4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc))
+      picomatch: 4.0.7(patch_hash=f8562132ea07d803714990e4217e05c408b91faa49293553df9f21f88cff7adc)
 
   toidentifier@1.0.1: {}
 

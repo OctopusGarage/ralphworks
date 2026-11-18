@@ -26,7 +26,8 @@
     "docs/TASK_PROFILES.md",
     "docs/TASK_PROFILE_EVALUATION.md",
     "docs/CAPABILITY_PROFILES.md",
-    "docs/assets/ralphworks-overview.svg"
+    "docs/assets/ralphworks-overview.svg",
+    "patches/"
   ],
   "scripts": {
     "ralph": "node src/cli.ts run",
@@ -36,13 +37,14 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/run-tests.mjs tests/*.test.ts",
-    "test:coverage": "node scripts/run-tests.mjs --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=80 --test-coverage-branches=75 --test-coverage-functions=80 tests/*.test.ts",
+    "test": "pnpm test:security && node scripts/run-tests.mjs tests/*.test.ts",
+    "test:coverage": "pnpm test:security && node scripts/run-tests.mjs --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=80 --test-coverage-branches=75 --test-coverage-functions=80 tests/*.test.ts",
     "verify:workflows": "node scripts/verify-workflows.mjs",
     "knip": "knip",
-    "audit": "pnpm audit --audit-level high",
-    "verify:local": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm verify:workflows && pnpm knip && pnpm build && pnpm pack --pack-destination /tmp && pnpm audit",
-    "prepare": "husky"
+    "audit": "node scripts/audit-dependencies.mjs",
+    "verify:local": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm verify:workflows && pnpm knip && pnpm build && pnpm pack --pack-destination /tmp && pnpm run audit",
+    "prepare": "husky",
+    "test:security": "node --test scripts/audit-dependencies.test.mjs"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
@@ -62,7 +64,12 @@
   "pnpm": {
     "overrides": {
       "@earendil-works/pi-coding-agent>minimatch": "11.0.1",
-      "@earendil-works/pi-coding-agent>undici": "8.12.2"
+      "@earendil-works/pi-coding-agent>undici": "8.12.2",
+      "hono": "4.13.16",
+      "@hono/node-server": "2.1.6"
+    },
+    "patchedDependencies": {
+      "picomatch@4.0.7": "patches/picomatch@4.0.7.patch"
     }
   }
 }
