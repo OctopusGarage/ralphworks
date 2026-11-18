@@ -19,7 +19,10 @@ trap 'rm -rf -- "$smoke_dir"' EXIT
 
 pnpm --dir "$repo_root" build >/dev/null
 if [ "$mode" != host ]; then
-  docker build -q -f "$repo_root/docker/ralphworks-sandbox.Dockerfile" -t ralphworks-sandbox:latest "$repo_root" >/dev/null
+  if ! docker build --progress=plain -f "$repo_root/docker/ralphworks-sandbox.Dockerfile" -t ralphworks-sandbox:latest "$repo_root" >"$smoke_dir/docker-build.log" 2>&1; then
+    cat "$smoke_dir/docker-build.log" >&2
+    exit 1
+  fi
 fi
 
 if [ "$mode" = docker-timeout ]; then

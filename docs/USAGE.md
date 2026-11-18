@@ -700,6 +700,8 @@ Build the current image from the RalphWorks repository:
 docker build -f docker/ralphworks-sandbox.Dockerfile -t ralphworks-sandbox:latest .
 ```
 
+The image includes the dependency patches declared in the lockfile. Container smoke checks print the build log if image construction fails.
+
 ### Mount the current worktree
 
 Docker mount mode mounts the current repository at `/workspace`. Changes, including changes to files that were already uncommitted, are written directly to the host.
