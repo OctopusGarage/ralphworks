@@ -51,10 +51,10 @@
     "@modelcontextprotocol/sdk": "^1.32.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.7",
+    "@biomejs/biome": "2.6.8",
     "@types/node": "^24.19.2",
     "husky": "9.1.7",
-    "knip": "6.45.1",
+    "knip": "6.47.0",
     "typescript": "^5.7.0"
   },
   "engines": {
